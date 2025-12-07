@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 import { useRegion } from "@/components/providers/region-provider"
-import { getRegionName } from "@/lib/regions"
+import { getRegionName, REGIONS } from "@/lib/regions"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface HeaderProps {
   searchQuery: string
@@ -58,17 +59,40 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
-          <Link href={regionCode ? `/${regionCode}` : "/"} className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Search className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">
-                {t.appName} {regionName ? <span className="text-primary ml-1">{regionName}</span> : ""}
-              </h1>
-              <p className="hidden text-xs text-muted-foreground sm:block">{t.tagline}</p>
-            </div>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href={regionCode ? `/${regionCode}` : "/"} className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <Search className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-foreground">
+                  {t.appName}
+                </h1>
+                <p className="hidden text-xs text-muted-foreground sm:block">{t.tagline}</p>
+              </div>
+            </Link>
+
+            <Select
+              value={regionCode || "all"}
+              onValueChange={(val) => {
+                if (val === "all") router.push("/")
+                else router.push(`/${val}`)
+              }}
+            >
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/50 border-0 focus:ring-0">
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-primary" />
+                  <SelectValue placeholder="Elegí tu provincia" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las Provincias</SelectItem>
+                {Object.entries(REGIONS).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => (
+                  <SelectItem key={code} value={code}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex flex-1 max-w-md mx-4">
             <div className="relative w-full">

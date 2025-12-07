@@ -21,12 +21,15 @@ export function VenueCard({ venue }: VenueCardProps) {
   const isPremium = venue.subscriptionPlan === "premium"
   const isOpen = checkIsOpen(venue)
 
+  // Use current region context if available, otherwise use venue's region
+  const regionLink = regionCode || venue.regionCode || 'tdf' // Default fallback if data is bad
+
   return (
     <Card className={cn(
       "overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1 h-full",
       isPremium && "border-2 border-yellow-400 shadow-md"
     )}>
-      <Link href={`/${regionCode}/${venue.slug}`} className="block h-full">
+      <Link href={`/${regionLink}/${venue.slug}`} className="block h-full">
         <div className="relative aspect-[3/2] overflow-hidden">
           <img
             src={venue.logo || venue.image || "/placeholder.svg"}
