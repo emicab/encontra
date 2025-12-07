@@ -5,15 +5,30 @@ import { VenueDetailView } from "@/components/venue-detail-view"
 import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon, type Product } from "@/lib/data"
 
 // Create a single supabase client for interaction with your database
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Use anon key for public data
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 type Props = {
     params: Promise<{ slug: string }>
 }
 
 async function getVenue(slug: string): Promise<{ venue: Venue | null, products: Product[], coupons: Coupon[] }> {
+    // Fallback to mock if env vars are missing
+    if (!supabaseUrl || !supabaseKey) {
+        console.warn("Supabase credentials missing, using mock data")
+        const mockVenue = mockVenues.find((v) => v.slug === slug)
+        if (mockVenue) {
+            return {
+                venue: mockVenue,
+                products: [],
+                coupons: mockCoupons.filter((c) => c.venueId === mockVenue.id)
+            }
+        }
+        return { venue: null, products: [], coupons: [] }
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
     // Try fetch from Supabase
     try {
         const { data: venueData, error } = await supabase
