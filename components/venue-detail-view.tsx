@@ -144,7 +144,9 @@ export function VenueDetailView({ venue, products, coupons }: VenueDetailViewPro
                             )}
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <Badge>{t[venue.category]}</Badge>
+                                    <Badge>
+                                        {t[venue.category as keyof typeof t] || venue.category.charAt(0).toUpperCase() + venue.category.slice(1)}
+                                    </Badge>
                                     <Badge variant={isOpenNow ? "default" : "secondary"} className={isOpenNow ? "bg-green-500 text-white hover:bg-green-600" : "bg-muted text-muted-foreground"}>
                                         {isOpenNow ? t.open : t.closed}
                                     </Badge>

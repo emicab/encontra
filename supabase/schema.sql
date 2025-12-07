@@ -4,7 +4,7 @@ create table venues (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name jsonb not null, -- Stores {en: "...", es: "..."}
   description jsonb not null,
-  category text not null check (category in ('restaurant', 'cafe', 'shop', 'entertainment')),
+  category text not null,
   image text,
   rating numeric default 0,
   review_count integer default 0,

@@ -10,6 +10,7 @@ import { SectionHeader } from "@/components/section-header"
 import { t } from "@/lib/i18n"
 import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon } from "@/lib/data"
 import { supabase } from "@/lib/supabase"
+import { checkIsOpen } from "@/lib/business-logic"
 import { useRegion } from "@/components/providers/region-provider"
 
 export default function RegionHome() {
@@ -129,6 +130,11 @@ export default function RegionHome() {
 
     const featuredVenues = useMemo(() => venues.filter((v) => v.isFeatured), [venues])
 
+    const categories = useMemo(() => {
+        const cats = new Set(venues.map(v => v.category).filter(Boolean))
+        return Array.from(cats).sort()
+    }, [venues])
+
     const filteredVenues = useMemo(() => {
         return venues.filter((venue) => {
             // Handle potential JSON structure
@@ -140,7 +146,7 @@ export default function RegionHome() {
                 name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 description.toLowerCase().includes(searchQuery.toLowerCase())
 
-            const matchesOpen = !showOpenOnly || venue.isOpen
+            const matchesOpen = !showOpenOnly || checkIsOpen(venue)
             const matchesCategory = !selectedCategory || venue.category === selectedCategory
 
             return matchesSearch && matchesOpen && matchesCategory
@@ -172,6 +178,7 @@ export default function RegionHome() {
                         onToggleOpenOnly={() => setShowOpenOnly(!showOpenOnly)}
                         selectedCategory={selectedCategory}
                         onSelectCategory={setSelectedCategory}
+                        categories={categories}
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredVenues.map((venue) => (

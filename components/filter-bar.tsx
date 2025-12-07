@@ -9,11 +9,10 @@ interface FilterBarProps {
   onToggleOpenOnly: () => void
   selectedCategory: string | null
   onSelectCategory: (category: string | null) => void
+  categories: string[]
 }
 
-const categories = ["restaurant", "cafe", "shop", "entertainment"]
-
-export function FilterBar({ showOpenOnly, onToggleOpenOnly, selectedCategory, onSelectCategory }: FilterBarProps) {
+export function FilterBar({ showOpenOnly, onToggleOpenOnly, selectedCategory, onSelectCategory, categories }: FilterBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 py-4">
       <Button variant={showOpenOnly ? "default" : "outline"} size="sm" onClick={onToggleOpenOnly} className="gap-1">
@@ -38,7 +37,7 @@ export function FilterBar({ showOpenOnly, onToggleOpenOnly, selectedCategory, on
           size="sm"
           onClick={() => onSelectCategory(cat)}
         >
-          {t[cat as keyof typeof t]}
+          {t[cat as keyof typeof t] || cat.charAt(0).toUpperCase() + cat.slice(1)}
         </Button>
       ))}
     </div>

@@ -113,6 +113,11 @@ export default function Home() {
 
   const featuredVenues = useMemo(() => venues.filter((v) => v.isFeatured), [venues])
 
+  const categories = useMemo(() => {
+    const cats = new Set(venues.map(v => v.category).filter(Boolean))
+    return Array.from(cats).sort()
+  }, [venues])
+
   const filteredVenues = useMemo(() => {
     return venues.filter((venue) => {
       // Handle potential JSON structure
@@ -156,6 +161,7 @@ export default function Home() {
             onToggleOpenOnly={() => setShowOpenOnly(!showOpenOnly)}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
+            categories={categories}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredVenues.map((venue) => (
