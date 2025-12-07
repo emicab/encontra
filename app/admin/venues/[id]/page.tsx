@@ -12,9 +12,22 @@ export default function EditVenuePage() {
     const [venue, setVenue] = useState<Venue | null>(null)
     const [loading, setLoading] = useState(true)
 
+    const [isAdmin, setIsAdmin] = useState(false)
+
     useEffect(() => {
         async function fetchVenue() {
             try {
+                // Check admin status
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("is_admin")
+                        .eq("id", user.id)
+                        .single()
+                    if (profile?.is_admin) setIsAdmin(true)
+                }
+
                 const { data, error } = await supabase
                     .from("venues")
                     .select("*")

@@ -121,7 +121,7 @@ export default function AdminLayout({
                 <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                     <Link href="/" className="flex items-center gap-2 font-semibold">
                         <Store className="h-6 w-6" />
-                        <span className="">{isAdmin ? "Admin LocalGuide" : "Mi LocalGuide"}</span>
+                        <span className="">{isAdmin ? "Admin Encontrá" : "Encontrá | Mi Panel"}</span>
                     </Link>
                 </div>
                 <div className="flex-1 overflow-auto py-2">
@@ -149,7 +149,7 @@ export default function AdminLayout({
                             <nav className="grid gap-2 text-lg font-medium">
                                 <Link href="#" className="flex items-center gap-2 text-lg font-semibold mb-4">
                                     <Store className="h-6 w-6" />
-                                    <span className="sr-only">{isAdmin ? "Admin LocalGuide" : "Mi LocalGuide"}</span>
+                                    <span className="sr-only">{isAdmin ? "Admin Encontrá" : "Encontrá | Mi Panel"}</span>
                                 </Link>
                                 <NavLinks />
                                 <div className="mt-auto pt-4">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, Wand2, MapPin } from "lucide-react"
+import { Loader2, Wand2, MapPin, Crown } from "lucide-react"
 import type { Venue } from "@/lib/data"
 import ImageUpload from "@/components/ui/image-upload"
 import { useRouter } from "next/navigation"
@@ -77,9 +77,10 @@ const defaultSchedule: WeeklySchedule = {
 
 interface VenueFormProps {
     initialData?: Venue
+    isAdmin?: boolean
 }
 
-export function VenueForm({ initialData }: VenueFormProps) {
+export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
     const router = useRouter()
     const { toast } = useToast()
     const [isPending, setIsPending] = useState(false)
@@ -675,51 +676,82 @@ export function VenueForm({ initialData }: VenueFormProps) {
                                 <CardTitle>Suscripción</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="subscriptionPlan"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Plan</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="free">Gratis ($0)</SelectItem>
-                                                        <SelectItem value="basic">Básico ($29)</SelectItem>
-                                                        <SelectItem value="premium">Premium ($99)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="subscriptionStatus"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Estado</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="active">Activo</SelectItem>
-                                                        <SelectItem value="inactive">Inactivo</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                {isAdmin ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="subscriptionPlan"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Plan</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="free">Gratis ($0)</SelectItem>
+                                                            <SelectItem value="basic">Básico ($29)</SelectItem>
+                                                            <SelectItem value="premium">Premium ($99)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="subscriptionStatus"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Estado</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="active">Activo</SelectItem>
+                                                            <SelectItem value="inactive">Inactivo</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <div className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Plan Actual</div>
+                                            <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                                                {form.getValues("subscriptionPlan") === 'free' ? 'Vecino (Gratis)' :
+                                                    form.getValues("subscriptionPlan") === 'basic' ? 'Emprendedor' :
+                                                        form.getValues("subscriptionPlan") === 'premium' ? 'Negocio Full' :
+                                                            form.getValues("subscriptionPlan")}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Estado</div>
+                                            <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                                                {form.getValues("subscriptionStatus") === 'active' ? 'Activo' : 'Inactivo'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {!isAdmin && initialData && initialData.slug && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full gap-2 border-amber-200 hover:bg-amber-50 hover:text-amber-900"
+                                        onClick={() => window.open(`/${initialData.regionCode || 'tdf'}/${initialData.slug}/planes`, '_blank')}
+                                    >
+                                        <Crown className="h-4 w-4 text-amber-500" />
+                                        Ver Planes y Mejoras
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -907,6 +939,7 @@ export function VenueForm({ initialData }: VenueFormProps) {
                                     )}
                                 />
                             </CardContent>
+
                         </Card>
                     </div>
                 </div>
@@ -925,6 +958,6 @@ export function VenueForm({ initialData }: VenueFormProps) {
                 </div>
                 <div className="h-20" /> {/* Spacer for floating button */}
             </form>
-        </Form>
+        </Form >
     )
 }

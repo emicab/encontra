@@ -14,6 +14,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const router = useRouter()
     const { toast } = useToast()
 
@@ -25,6 +26,7 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
+        setErrorMsg(null)
 
         try {
             const { error } = await supabase.auth.signInWithPassword({
@@ -52,9 +54,24 @@ export default function LoginPage() {
                 router.refresh()
             }
         } catch (error: any) {
+            console.error("Login error:", error)
+            let message = "Ocurrió un error al iniciar sesión."
+
+            if (error.message === "Invalid login credentials") {
+                message = "Email o contraseña incorrectos."
+            } else if (error.message.includes("Email not confirmed")) {
+                message = "Tu email no ha sido confirmado aún."
+            } else if (error.message.includes("Rate limit exceeded")) {
+                message = "Demasiados intentos. Por favor esperá unos minutos."
+            } else {
+                message = error.message // Fallback
+            }
+
+            setErrorMsg(message)
+
             toast({
-                title: "Error",
-                description: error.message || "Credenciales inválidas.",
+                title: "Error de ingreso",
+                description: message,
                 variant: "destructive",
             })
         } finally {
@@ -71,19 +88,24 @@ export default function LoginPage() {
                             <Store className="h-8 w-8 text-primary" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl text-center font-bold">LocalGuide Admin</CardTitle>
+                    <CardTitle className="text-2xl text-center font-bold">Encontrá Admin</CardTitle>
                     <CardDescription className="text-center">
                         Ingresá tus credenciales para acceder al panel.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
+                        {errorMsg && (
+                            <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
+                                <span className="font-semibold">Error:</span> {errorMsg}
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="admin@localguide.com"
+                                placeholder="admin@encontra.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required

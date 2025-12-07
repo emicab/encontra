@@ -6,6 +6,18 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.4.0` - Gestión de Planes y Flexibilidad
+*   **Página de Planes y Upgrades**:
+    *   **Vista Dedicada**: Nueva página `/planes` para cada local (ej: `.../sakura-sushi/planes`).
+    *   **Diseño Comparativo**: Visualización clara de beneficios (Vecino vs Emprendedor vs Full).
+    *   **Seguridad**: Acceso restringido únicamente a locales con dueño asignado (*Claimed*).
+*   **Panel de Administración (Dueños)**:
+    *   **Gestión de Suscripción**: La sección de plan ahora es de **solo lectura** para garantizar la integridad.
+    *   **Flujo de Mejora**: Botón directo "Ver Planes y Mejoras" que redirige a la comparativa y contacto comercial.
+    *   **Flexibilidad de Categorías**:
+        *   Soporte para categorías dinámicas personalizadas ("Otras").
+        *   Expansión de lista de rubros predefinidos (Salud, Hogar, Mercado, etc.).
+
 ### `v1.3.0` - Autonomía y Persistencia
 *   **Persistencia de Región**:
     *   **Recordatorio Inteligente**: Al visitar `encontra.com.ar`, el sistema redirige automáticamente a la última provincia visitada.

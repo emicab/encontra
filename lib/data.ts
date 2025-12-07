@@ -35,6 +35,7 @@ export interface Venue {
   serviceArrangement: boolean
   gallery?: string[]
   regionCode?: string
+  ownerId?: string | null
 }
 
 export type TimeRange = { start: string; end: string }
@@ -96,6 +97,7 @@ export const venues: Venue[] = [
     logo: "/japanese-sushi-restaurant.png",
     gallery: ["/japanese-sushi-restaurant.png", "/sushi-platter-discount-coupon.jpg"],
     regionCode: "tdf",
+    ownerId: "mock_owner_1",
   },
   {
     id: "2",
