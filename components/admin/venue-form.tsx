@@ -34,7 +34,8 @@ const formSchema = z.object({
     name: z.string().min(1, "El nombre es obligatorio"),
     slug: z.string().min(2, "El slug es obligatorio").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Formato de slug inválido (solo minúsculas, números y guiones)"),
     description: z.string().min(1, "La descripción es obligatoria"),
-    category: z.enum(["restaurant", "cafe", "shop", "entertainment"]),
+    category: z.string().min(1, "La categoría es obligatoria"),
+    customCategory: z.string().optional(),
     venueType: z.enum(["physical", "entrepreneur", "service"]),
     locationMode: z.enum(["address", "zone"]),
     street: z.string().optional(),
@@ -82,6 +83,20 @@ export function VenueForm({ initialData }: VenueFormProps) {
     const router = useRouter()
     const { toast } = useToast()
     const [isPending, setIsPending] = useState(false)
+    const [categories, setCategories] = useState<string[]>([
+        "restaurant", "cafe", "shop", "entertainment", "service", "health", "home", "market"
+    ])
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data } = await supabase.from("venues").select("category")
+            if (data) {
+                const distinct = Array.from(new Set(data.map((d: any) => d.category))).filter(Boolean) as string[]
+                setCategories(prev => Array.from(new Set([...prev, ...distinct])).sort())
+            }
+        }
+        fetchCategories()
+    }, [])
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -138,6 +153,10 @@ export function VenueForm({ initialData }: VenueFormProps) {
     }
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (values.category === "new_custom" && !values.customCategory) {
+            toast({ title: "Error", description: "Por favor escriba el nombre de la nueva categoría.", variant: "destructive" })
+            return
+        }
         setIsPending(true)
         try {
             let regionCode = initialData?.regionCode || 'tdf';
@@ -168,7 +187,7 @@ export function VenueForm({ initialData }: VenueFormProps) {
                 name: values.name,
                 slug: values.slug,
                 description: values.description,
-                category: values.category,
+                category: values.category === "new_custom" ? values.customCategory : values.category,
                 venue_type: values.venueType,
                 location_mode: values.locationMode,
                 zone: values.zone,
@@ -336,16 +355,44 @@ export function VenueForm({ initialData }: VenueFormProps) {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="restaurant">Restaurante</SelectItem>
-                                                    <SelectItem value="cafe">Cafetería</SelectItem>
-                                                    <SelectItem value="shop">Tienda</SelectItem>
-                                                    <SelectItem value="entertainment">Entretenimiento</SelectItem>
+                                                    {categories.map((c) => (
+                                                        <SelectItem key={c} value={c}>
+                                                            {c === "restaurant" ? "Gastronomía" :
+                                                                c === "cafe" ? "Cafetería" :
+                                                                    c === "shop" ? "Tienda" :
+                                                                        c === "entertainment" ? "Entretenimiento" :
+                                                                            c === "service" ? "Servicios" :
+                                                                                c === "health" ? "Salud" :
+                                                                                    c === "home" ? "Hogar" :
+                                                                                        c === "market" ? "Mercado" :
+                                                                                            c}
+                                                        </SelectItem>
+                                                    ))}
+                                                    <SelectItem value="new_custom" className="font-semibold text-primary">
+                                                        + Crear nueva categoría...
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+
+                                {form.watch("category") === "new_custom" && (
+                                    <FormField
+                                        control={form.control}
+                                        name="customCategory"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nombre de la nueva categoría</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Ej: Farmacia" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField

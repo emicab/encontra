@@ -3,7 +3,7 @@ export interface Venue {
   slug: string
   name: string
   description: string
-  category: "restaurant" | "cafe" | "shop" | "entertainment"
+  category: string
   image: string
   logo?: string
   rating: number

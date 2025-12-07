@@ -249,6 +249,9 @@ export function SumateForm() {
                                                         <SelectItem value="shop">Tienda / Local de Ropa</SelectItem>
                                                         <SelectItem value="service">Servicios Profesionales</SelectItem>
                                                         <SelectItem value="entertainment">Entretenimiento</SelectItem>
+                                                        <SelectItem value="health">Salud y Belleza</SelectItem>
+                                                        <SelectItem value="home">Hogar y Construcción</SelectItem>
+                                                        <SelectItem value="market">Mercado / Almacén</SelectItem>
                                                         <SelectItem value="other">Otro (Especificar)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
