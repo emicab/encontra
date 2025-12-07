@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 
 import { supabase } from "@/lib/supabase"
 import { useRegion } from "@/components/providers/region-provider"
+import { REGIONS } from "@/lib/regions"
 
 const formSchema = z.object({
     // Step 1: Business Info
@@ -95,6 +96,28 @@ export function SumateForm() {
     const onSubmit = async (data: FormData) => {
         setIsPending(true)
         try {
+            let detectedRegion = regionCode
+            if (!detectedRegion && data.location) {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(data.location)}&format=json&addressdetails=1&limit=1`)
+                    const results = await response.json()
+
+                    if (results && results.length > 0) {
+                        const address = results[0].address
+                        // Nominatim returns 'state' for Argentina provinces
+                        const state = address.state || address.province || ""
+
+                        const match = Object.entries(REGIONS).find(([_, name]) => {
+                            return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
+                        })
+
+                        if (match) detectedRegion = match[0]
+                    }
+                } catch (error) {
+                    console.error("Error detecting region from address:", error)
+                }
+            }
+
             const { error } = await supabase.from("venue_requests").insert([{
                 name: data.name,
                 owner_name: data.ownerName,
@@ -109,7 +132,7 @@ export function SumateForm() {
                 visibility: data.visibility,
                 friction: data.friction,
                 security: data.security,
-                region_code: regionCode,
+                region_code: detectedRegion || 'tdf',
             }])
 
             if (error) throw error

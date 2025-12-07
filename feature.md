@@ -6,6 +6,15 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.3.0` - Autonomía y Persistencia
+*   **Persistencia de Región**:
+    *   **Recordatorio Inteligente**: Al visitar `encontra.com.ar`, el sistema redirige automáticamente a la última provincia visitada.
+    *   **Reseteo Manual**: Opción "Todas las Provincias" en el selector para volver a la vista global.
+*   **Detección Automática de Ubicación**:
+    *   **Formularios Inteligentes**: En "Sumate" y "Panel Admin", al ingresar una dirección, el sistema detecta automáticamente la provincia mediante Geocoding (Nominatim) y la asigna.
+*   **UX Renaming**:
+    *   **Selector Modal**: Nuevo selector de provincias tipo "Command Palette" accesible desde el título "Encontra en [Provincia]".
+
 ### `v1.2.0` - Soporte Multi-Región (Franquicia Digital)
 *   **Arquitectura Multi-Tenant**:
     *   Implementación de soporte para regiones mediante rutas (ej: `encontra.com.ar/tdf`, `encontra.com.ar/cba`).

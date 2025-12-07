@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { FeaturedCarousel } from "@/components/featured-carousel"
 import { CouponCard } from "@/components/coupon-card"
@@ -12,6 +13,15 @@ import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon }
 import { supabase } from "@/lib/supabase"
 
 export default function Home() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const lastRegion = localStorage.getItem("lastRegion")
+    if (lastRegion) {
+      router.push(`/${lastRegion}`)
+    }
+  }, [])
+
   const regionCode = null // Global home has no specific region filter
   const [searchQuery, setSearchQuery] = useState("")
   const [showOpenOnly, setShowOpenOnly] = useState(false)

@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast"
 import dynamic from "next/dynamic"
 import { ScheduleEditor } from "@/components/admin/schedule-editor"
 import { WeeklySchedule } from "@/lib/data"
+import { REGIONS } from "@/lib/regions"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
@@ -139,7 +140,31 @@ export function VenueForm({ initialData }: VenueFormProps) {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsPending(true)
         try {
+            let regionCode = initialData?.regionCode || 'tdf';
+
+            const fullAddress = values.locationMode === 'address'
+                ? `${values.street}, ${values.city}, ${values.country}`
+                : `${values.zone}, ${values.city}, ${values.country}`
+
+            if (fullAddress) {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(fullAddress)}&format=json&addressdetails=1&limit=1`)
+                    const results = await response.json()
+                    if (results && results.length > 0) {
+                        const address = results[0].address
+                        const state = address.state || address.province || ""
+                        const match = Object.entries(REGIONS).find(([_, name]) => {
+                            return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
+                        })
+                        if (match) regionCode = match[0]
+                    }
+                } catch (e) {
+                    console.error("Region detection failed", e)
+                }
+            }
+
             const venueData = {
+                region_code: regionCode,
                 name: values.name,
                 slug: values.slug,
                 description: values.description,

@@ -1,5 +1,7 @@
+"use client"
+
 import { useState, useEffect } from "react"
-import { MapPin, Search, User, LogOut, LayoutDashboard, Store } from "lucide-react"
+import { MapPin, Search, User, LogOut, LayoutDashboard, Store, ChevronDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -16,7 +18,14 @@ import {
 import { useRouter } from "next/navigation"
 import { useRegion } from "@/components/providers/region-provider"
 import { getRegionName, REGIONS } from "@/lib/regions"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 
 interface HeaderProps {
   searchQuery: string
@@ -26,6 +35,7 @@ interface HeaderProps {
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const regionCode = useRegion()
   const regionName = getRegionName(regionCode)
+  const [open, setOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
@@ -33,6 +43,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   useEffect(() => {
     checkUser()
   }, [])
+
+  useEffect(() => {
+    if (regionCode) {
+      localStorage.setItem("lastRegion", regionCode)
+    }
+  }, [regionCode])
 
   async function checkUser() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -59,39 +75,28 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
+
+          {/* Logo / Region Selector */}
           <div className="flex items-center gap-4">
-            <Link href={regionCode ? `/${regionCode}` : "/"} className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setOpen(true)}
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                 <Search className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">
+                <h1 className="text-lg font-bold text-foreground flex items-center">
                   {t.appName}
+                  {regionName && <span className="font-normal mx-1">en</span>}
+                  <span className={regionName ? "text-primary border-b border-primary/20 border-dashed" : ""}>
+                    {regionName || ""}
+                  </span>
+                  <ChevronDown className="h-4 w-4 ml-1 text-muted-foreground" />
                 </h1>
                 <p className="hidden text-xs text-muted-foreground sm:block">{t.tagline}</p>
               </div>
-            </Link>
-
-            <Select
-              value={regionCode || "all"}
-              onValueChange={(val) => {
-                if (val === "all") router.push("/")
-                else router.push(`/${val}`)
-              }}
-            >
-              <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/50 border-0 focus:ring-0">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-primary" />
-                  <SelectValue placeholder="Elegí tu provincia" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las Provincias</SelectItem>
-                {Object.entries(REGIONS).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => (
-                  <SelectItem key={code} value={code}>{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            </div>
           </div>
 
           <div className="flex flex-1 max-w-md mx-4">
@@ -147,6 +152,31 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           </div>
         </div>
       </div>
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandInput placeholder="Buscar provincia..." />
+        <CommandList>
+          <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+          <CommandGroup heading="Ubicaciones">
+            <CommandItem value="Todas las Provincias" onSelect={() => {
+              localStorage.removeItem("lastRegion")
+              window.location.href = "/"
+              setOpen(false)
+            }}>
+              <MapPin className="mr-2 h-4 w-4" />
+              Todas las Provincias
+            </CommandItem>
+            {Object.entries(REGIONS).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => (
+              <CommandItem key={code} value={name} onSelect={() => {
+                window.location.href = `/${code}`
+                setOpen(false)
+              }}>
+                <MapPin className="mr-2 h-4 w-4" />
+                {name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
     </header>
   )
 }
