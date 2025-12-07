@@ -8,30 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { REGIONS } from "@/lib/regions"
 import { useToast } from "@/components/ui/use-toast"
 import { t } from "@/lib/i18n"
+import { useRouter } from "next/navigation"
 
 export function RegionGateway() {
     const [isLocating, setIsLocating] = useState(false)
     const { toast } = useToast()
+    const router = useRouter()
 
     const handleManualSelect = (code: string) => {
-        // In development (localhost), we need to handle ports. In prod, standard subdomains.
-        const currentHost = window.location.host // localhost:3000 or encontra.com.ar
-        const protocol = window.location.protocol // http: or https:
-
-        let newUrl = ""
-
-        if (currentHost.includes("localhost")) {
-            // Remove existing subdomain if any (though we are in gateway so likely none)
-            const parts = currentHost.split(".")
-            const domain = parts.length > 1 && parts[0] !== 'www' ? parts.slice(1).join(".") : currentHost
-            newUrl = `${protocol}//${code}.${domain}`
-        } else {
-            // Production logic
-            const domain = currentHost.replace("www.", "")
-            newUrl = `${protocol}//${code}.${domain}`
-        }
-
-        window.location.href = newUrl
+        router.push(`/${code}`)
     }
 
     const handleGeolocation = () => {

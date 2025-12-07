@@ -5,9 +5,6 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 
-import { headers } from "next/headers"
-import { RegionProvider } from "@/components/providers/region-provider"
-
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
@@ -19,22 +16,17 @@ export const metadata: Metadata = {
   generator: 'v0.app'
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const headersList = await headers()
-  const regionCode = headersList.get("x-encontra-region")
-
   return (
     <html lang="es">
       <body className="font-sans antialiased">
-        <RegionProvider regionCode={regionCode}>
-          {children}
-          <Analytics />
-          <Toaster />
-        </RegionProvider>
+        {children}
+        <Analytics />
+        <Toaster />
       </body>
     </html>
   )

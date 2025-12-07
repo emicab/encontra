@@ -8,9 +8,9 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ### `v1.2.0` - Soporte Multi-Región (Franquicia Digital)
 *   **Arquitectura Multi-Tenant**:
-    *   Implementación de soporte para subdominios regionales (ej: `tdf.encontra.com.ar`, `cba.encontra.com.ar`).
-    *   **Middleware Inteligente**: Detección automática del código de región desde la URL y reescritura interna de solicitudes.
-    *   **Filtrado Global**: Datos filtrados automáticamente por `region_code` en todas las consultas (Home, Detalles, Búsquedas).
+    *   Implementación de soporte para regiones mediante rutas (ej: `encontra.com.ar/tdf`, `encontra.com.ar/cba`).
+    *   **Gateway Inteligente**: Página de inicio (`/`) que detecta o permite seleccionar la región y redirige a la ruta correspondiente.
+    *   **Filtrado Global**: Datos filtrados automáticamente por el segmento de región en la URL.
 *   **Identidad Localizada**:
     *   Cabecera dinámica que muestra la provincia activa con su nombre completo (ej: "ENCONTRA Tierra del Fuego") en lugar de códigos.
     *   Adaptación de la interfaz para sentirse nativa de cada región.

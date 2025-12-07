@@ -3,27 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
     const requestHeaders = new Headers(request.headers)
-    const hostname = request.headers.get('host') || ''
-
-    // Subdomain logic: Extract region code from the first part of the hostname
-    let regionCode = ''
-    const parts = hostname.split('.')
-    // Basic check: needs at least 2 parts (subdomain.domain) and subdomain shouldn't be www
-    if (parts.length > 1) {
-        const potentialRegion = parts[0]
-        // Filter out common non-region subdomains
-        if (potentialRegion !== 'www' && potentialRegion !== 'encontra' && !potentialRegion.startsWith('localhost')) {
-            regionCode = potentialRegion
-        }
-        // Explicitly handle localhost subdomains for development (e.g. tdf.localhost)
-        if (hostname.includes('localhost') && parts[0] !== 'localhost') {
-            regionCode = parts[0]
-        }
-    }
-
-    if (regionCode) {
-        requestHeaders.set('x-encontra-region', regionCode)
-    }
+    // Subdomain logic removed in favor of path-based routing
 
     let response = NextResponse.next({
         request: {

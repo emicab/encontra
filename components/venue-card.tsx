@@ -9,12 +9,14 @@ import type { Venue } from "@/lib/data"
 import { getVenueFeatures, checkIsOpen } from "@/lib/business-logic"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
+import { useRegion } from "@/components/providers/region-provider"
 
 interface VenueCardProps {
   venue: Venue
 }
 
 export function VenueCard({ venue }: VenueCardProps) {
+  const regionCode = useRegion()
   const features = getVenueFeatures(venue)
   const isPremium = venue.subscriptionPlan === "premium"
   const isOpen = checkIsOpen(venue)
@@ -24,7 +26,7 @@ export function VenueCard({ venue }: VenueCardProps) {
       "overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1 h-full",
       isPremium && "border-2 border-yellow-400 shadow-md"
     )}>
-      <Link href={`/${venue.slug}`} className="block h-full">
+      <Link href={`/${regionCode}/${venue.slug}`} className="block h-full">
         <div className="relative aspect-[3/2] overflow-hidden">
           <img
             src={venue.logo || venue.image || "/placeholder.svg"}
