@@ -11,7 +11,11 @@ import { t } from "@/lib/i18n"
 import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon } from "@/lib/data"
 import { supabase } from "@/lib/supabase"
 
+import { useRegion } from "@/components/providers/region-provider"
+import { RegionGateway } from "@/components/region-gateway"
+
 export default function Home() {
+  const regionCode = useRegion()
   const [searchQuery, setSearchQuery] = useState("")
   const [showOpenOnly, setShowOpenOnly] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -19,10 +23,22 @@ export default function Home() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Show Gateway if no region is selected (active)
+  // This effect will run on client side. Middleware handles server side detection.
+  // If middleware found nothing (e.g. root domain), regionCode is null.
+  if (!regionCode) {
+    return <RegionGateway />
+  }
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: venuesData, error: venuesError } = await supabase.from("venues").select("*")
+        let query = supabase.from("venues").select("*")
+        if (regionCode) {
+          query = query.eq("region_code", regionCode)
+        }
+
+        const { data: venuesData, error: venuesError } = await query
         const { data: couponsData, error: couponsError } = await supabase.from("coupons").select("*")
 
         if (venuesError) throw venuesError
@@ -60,13 +76,18 @@ export default function Home() {
           }))
           setVenues(mappedVenues)
         } else {
-          setVenues(mockVenues)
+          // Filter mock venues by region
+          const filteredMock = regionCode
+            ? mockVenues.filter(v => v.regionCode === regionCode)
+            : mockVenues
+          setVenues(filteredMock)
         }
 
         if (couponsData && couponsData.length > 0) {
           const venuesMap = new Map(venuesData?.map((v: any) => [v.id, v.name]) || [])
+          const visibleVenueIds = new Set(venuesData?.map((v: any) => v.id) || [])
 
-          const joinedCoupons: Coupon[] = couponsData.map((c: any) => ({
+          let joinedCoupons: Coupon[] = couponsData.map((c: any) => ({
             id: c.id,
             venueId: c.venue_id,
             venueName: venuesMap.get(c.venue_id) || "Desconocido",
@@ -77,23 +98,39 @@ export default function Home() {
             validUntil: c.valid_until,
             image: c.image,
           }))
+
+          if (regionCode && venuesData) {
+            joinedCoupons = joinedCoupons.filter(c => visibleVenueIds.has(c.venueId))
+          }
+
           setCoupons(joinedCoupons)
         } else {
-          setCoupons(mockCoupons)
+          // Mock coupons filtering
+          const filteredMockVenues = regionCode
+            ? mockVenues.filter(v => v.regionCode === regionCode)
+            : mockVenues
+          const visibleIds = new Set(filteredMockVenues.map(v => v.id))
+
+          setCoupons(mockCoupons.filter(c => visibleIds.has(c.venueId)))
         }
 
       } catch (error) {
         console.error("Error fetching data:", error)
         // Fallback to mock data on error
-        setVenues(mockVenues)
-        setCoupons(mockCoupons)
+        const filteredMock = regionCode
+          ? mockVenues.filter(v => v.regionCode === regionCode)
+          : mockVenues
+        setVenues(filteredMock)
+
+        const visibleIds = new Set(filteredMock.map(v => v.id))
+        setCoupons(mockCoupons.filter(c => visibleIds.has(c.venueId)))
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [])
+  }, [regionCode])
 
   const featuredVenues = useMemo(() => venues.filter((v) => v.isFeatured), [venues])
 
@@ -115,6 +152,7 @@ export default function Home() {
     })
   }, [venues, searchQuery, showOpenOnly, selectedCategory])
 
+  // Move loading check after RegionGateway check
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Cargando...</div>
   }

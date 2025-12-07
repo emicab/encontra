@@ -34,6 +34,7 @@ export interface Venue {
   servicePickup: boolean
   serviceArrangement: boolean
   gallery?: string[]
+  regionCode?: string
 }
 
 export type TimeRange = { start: string; end: string }
@@ -94,6 +95,7 @@ export const venues: Venue[] = [
     serviceArrangement: false,
     logo: "/japanese-sushi-restaurant.png",
     gallery: ["/japanese-sushi-restaurant.png", "/sushi-platter-discount-coupon.jpg"],
+    regionCode: "tdf",
   },
   {
     id: "2",
@@ -122,6 +124,7 @@ export const venues: Venue[] = [
     servicePickup: true,
     serviceArrangement: false,
     logo: "/cozy-cafe-coffee.png",
+    regionCode: "tdf",
   },
   {
     id: "3",
@@ -149,6 +152,7 @@ export const venues: Venue[] = [
     servicePickup: false,
     serviceArrangement: false,
     logo: "/gift-shop-with-souvenirs.jpg",
+    regionCode: "cba",
   },
   {
     id: "4",

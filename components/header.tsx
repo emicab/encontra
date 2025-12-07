@@ -14,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import { useRegion } from "@/components/providers/region-provider"
+import { getRegionName } from "@/lib/regions"
 
 interface HeaderProps {
   searchQuery: string
@@ -21,6 +23,8 @@ interface HeaderProps {
 }
 
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
+  const regionCode = useRegion()
+  const regionName = getRegionName(regionCode)
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
@@ -59,7 +63,9 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <Search className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">{t.appName}</h1>
+              <h1 className="text-lg font-bold text-foreground">
+                {t.appName} {regionName ? <span className="text-primary ml-1">{regionName}</span> : ""}
+              </h1>
               <p className="hidden text-xs text-muted-foreground sm:block">{t.tagline}</p>
             </div>
           </Link>

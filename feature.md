@@ -1,10 +1,21 @@
-# Encontrá - La Guía de Locales y Servicios `v1.1.2`
+# Encontrá - La Guía de Locales y Servicios `v1.2.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.2.0` - Soporte Multi-Región (Franquicia Digital)
+*   **Arquitectura Multi-Tenant**:
+    *   Implementación de soporte para subdominios regionales (ej: `tdf.encontra.com.ar`, `cba.encontra.com.ar`).
+    *   **Middleware Inteligente**: Detección automática del código de región desde la URL y reescritura interna de solicitudes.
+    *   **Filtrado Global**: Datos filtrados automáticamente por `region_code` en todas las consultas (Home, Detalles, Búsquedas).
+*   **Identidad Localizada**:
+    *   Cabecera dinámica que muestra la provincia activa con su nombre completo (ej: "ENCONTRA Tierra del Fuego") en lugar de códigos.
+    *   Adaptación de la interfaz para sentirse nativa de cada región.
+*   **Base de Datos**:
+    *   Nueva tabla `regions` y columna `region_code` en locales.
 
 ### `v1.1.2` - Mejoras de UX y Localización
 *   **Página 404 (Not Found)**:

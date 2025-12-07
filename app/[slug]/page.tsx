@@ -12,8 +12,13 @@ type Props = {
     params: Promise<{ slug: string }>
 }
 
+import { headers } from "next/headers"
+
+// ... imports
+
 async function getVenue(slug: string): Promise<{ venue: Venue | null, products: Product[], coupons: Coupon[] }> {
     const decodedSlug = decodeURIComponent(slug)
+    const regionCode = (await headers()).get("x-encontra-region")
 
     // Access env vars at runtime inside the function
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -22,7 +27,7 @@ async function getVenue(slug: string): Promise<{ venue: Venue | null, products: 
     // Fallback to mock if env vars are missing
     if (!supabaseUrl || !supabaseKey) {
         console.warn(`Supabase credentials missing (URL: ${!!supabaseUrl}, Key: ${!!supabaseKey}), using mock data`)
-        const mockVenue = mockVenues.find((v) => v.slug === decodedSlug)
+        const mockVenue = mockVenues.find((v) => v.slug === decodedSlug && (!regionCode || v.regionCode === regionCode))
         if (mockVenue) {
             return {
                 venue: mockVenue,
@@ -41,13 +46,19 @@ async function getVenue(slug: string): Promise<{ venue: Venue | null, products: 
 
     // Try fetch from Supabase
     try {
-        const { data: venueData, error } = await supabase
+        let query = supabase
             .from("venues")
             .select("*")
             .eq("slug", decodedSlug)
-            .single()
+
+        if (regionCode) {
+            query = query.eq("region_code", regionCode)
+        }
+
+        const { data: venueData, error } = await query.single()
 
         if (venueData) {
+            // ... mapping logic ...
             const mappedVenue: Venue = {
                 id: venueData.id,
                 slug: venueData.slug,
@@ -82,6 +93,7 @@ async function getVenue(slug: string): Promise<{ venue: Venue | null, products: 
                 distance: "",
                 ownerId: venueData.owner_id,
                 gallery: venueData.gallery,
+                regionCode: venueData.region_code,
             }
 
             // Fetch products
@@ -126,7 +138,7 @@ async function getVenue(slug: string): Promise<{ venue: Venue | null, products: 
     }
 
     // Fallback to mock
-    const mockVenue = mockVenues.find((v) => v.slug === slug)
+    const mockVenue = mockVenues.find((v) => v.slug === slug && (!regionCode || v.regionCode === regionCode))
     if (mockVenue) {
         return {
             venue: mockVenue,

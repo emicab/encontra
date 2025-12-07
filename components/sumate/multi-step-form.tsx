@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 
 import { supabase } from "@/lib/supabase"
+import { useRegion } from "@/components/providers/region-provider"
 
 const formSchema = z.object({
     // Step 1: Business Info
@@ -45,6 +46,7 @@ const steps = [
 ]
 
 export function SumateForm() {
+    const regionCode = useRegion()
     const [step, setStep] = useState(1)
     const [isPending, setIsPending] = useState(false)
     const { toast } = useToast()
@@ -107,6 +109,7 @@ export function SumateForm() {
                 visibility: data.visibility,
                 friction: data.friction,
                 security: data.security,
+                region_code: regionCode,
             }])
 
             if (error) throw error
@@ -317,6 +320,40 @@ export function SumateForm() {
                                             )}
                                         />
                                     </div>
+                                    <FormField
+                                        control={form.control}
+                                        name="locationType"
+                                        render={({ field }) => (
+                                            <FormItem className="space-y-3">
+                                                <FormLabel>Tipo de Ubicación</FormLabel>
+                                                <FormControl>
+                                                    <RadioGroup
+                                                        onValueChange={field.onChange}
+                                                        defaultValue={field.value}
+                                                        className="flex flex-col space-y-1"
+                                                    >
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="address" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                                Dirección Exacta (Local a la calle)
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="zone" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                                Solo Zona/Barrio (Sin local o privado)
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </CardContent>
                                 <CardFooter className="flex justify-end">
                                     <Button type="button" onClick={nextStep}>
