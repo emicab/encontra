@@ -1,10 +1,22 @@
-# Encontrá - La Guía de Locales y Servicios `v1.1.0`
+# Encontrá - La Guía de Locales y Servicios `v1.1.2`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.1.2` - Mejoras de UX y Localización
+*   **Página 404 (Not Found)**:
+    *   Traducción completa al español.
+    *   Mensaje personalizado con identidad de marca ("Encontrá").
+*   **Estados de Carga**:
+    *   Implementación de `loading.tsx` global con animación de lupa (identidad de marca).
+
+### `v1.1.1` - Correcciones de Backend
+*   **Corrección de Variables de Entorno**:
+    *   Reemplazo de variable inexistente `NEXT_PUBLIC_SUPABASE_ANON_KEY` por `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` en la página dinámica de locales (`[slug]`).
+    *   Restauración de la conexión correcta con Supabase para la obtención de datos del local.
 
 ### `v1.1.0` - SEO y Rendimiento
 *   **Optimización para Buscadores (SEO)**:

@@ -12,15 +12,15 @@ export default function NotFound() {
 
                 <div className="space-y-2">
                     <h1 className="text-4xl font-bold tracking-tighter">404</h1>
-                    <h2 className="text-2xl font-semibold">Page Not Found</h2>
+                    <h2 className="text-2xl font-semibold">¡Ups! No encontramos nada</h2>
                     <p className="text-muted-foreground">
-                        Sorry, we couldn't find the page you're looking for. It might have been moved or deleted.
+                        Irónicamente, en <span className="font-bold text-primary">Encontrá</span> no pudimos hallar la página que buscabas. Quizás se movió o nunca existió.
                     </p>
                 </div>
 
                 <div className="flex gap-4">
                     <Button asChild variant="default">
-                        <Link href="/">Go Home</Link>
+                        <Link href="/">Volver al Inicio</Link>
                     </Button>
 
                 </div>

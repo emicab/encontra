@@ -4,19 +4,25 @@ import { createClient } from "@supabase/supabase-js"
 import { VenueDetailView } from "@/components/venue-detail-view"
 import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon, type Product } from "@/lib/data"
 
+export const dynamic = 'force-dynamic'
+
 // Create a single supabase client for interaction with your database
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 type Props = {
     params: Promise<{ slug: string }>
 }
 
 async function getVenue(slug: string): Promise<{ venue: Venue | null, products: Product[], coupons: Coupon[] }> {
+    const decodedSlug = decodeURIComponent(slug)
+
+    // Access env vars at runtime inside the function
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+
     // Fallback to mock if env vars are missing
     if (!supabaseUrl || !supabaseKey) {
-        console.warn("Supabase credentials missing, using mock data")
-        const mockVenue = mockVenues.find((v) => v.slug === slug)
+        console.warn(`Supabase credentials missing (URL: ${!!supabaseUrl}, Key: ${!!supabaseKey}), using mock data`)
+        const mockVenue = mockVenues.find((v) => v.slug === decodedSlug)
         if (mockVenue) {
             return {
                 venue: mockVenue,
@@ -27,14 +33,18 @@ async function getVenue(slug: string): Promise<{ venue: Venue | null, products: 
         return { venue: null, products: [], coupons: [] }
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            persistSession: false,
+        }
+    })
 
     // Try fetch from Supabase
     try {
         const { data: venueData, error } = await supabase
             .from("venues")
             .select("*")
-            .eq("slug", slug)
+            .eq("slug", decodedSlug)
             .single()
 
         if (venueData) {
