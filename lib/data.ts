@@ -36,6 +36,7 @@ export interface Venue {
   gallery?: string[]
   regionCode?: string
   ownerId?: string | null
+  city?: string
 }
 
 export type TimeRange = { start: string; end: string }

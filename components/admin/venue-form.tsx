@@ -63,6 +63,30 @@ const formSchema = z.object({
     servicePickup: z.boolean().default(false),
     serviceArrangement: z.boolean().default(false),
     schedule: z.any(),
+}).superRefine((data, ctx) => {
+    // Debug logging
+    console.log("SuperRefine check:", {
+        mode: data.locationMode,
+        street: data.street,
+        zone: data.zone
+    })
+
+    if (data.locationMode === "address" && !data.street) {
+        console.error("Validation failed: Address mode requires street")
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "La calle es obligatoria para ubicación exacta",
+            path: ["street"]
+        })
+    }
+    if (data.locationMode === "zone" && !data.zone) {
+        console.error("Validation failed: Zone mode requires zone")
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "La zona/barrio es obligatoria",
+            path: ["zone"]
+        })
+    }
 })
 
 const defaultSchedule: WeeklySchedule = {
@@ -105,9 +129,27 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
             ? {
                 ...initialData,
                 slug: initialData.slug || "",
-                name: initialData.name,
-                description: initialData.description,
+                // Handle JSONB fields for name and description
+                name: typeof initialData.name === 'object' ? (initialData.name as any).es || (initialData.name as any).en || "" : initialData.name,
+                description: typeof initialData.description === 'object' ? (initialData.description as any).es || (initialData.description as any).en || "" : initialData.description,
                 schedule: initialData.schedule || defaultSchedule,
+                // Fix enum mismatch: DB 'exact_address' -> Schema 'address'
+                locationMode: (initialData.locationMode === 'exact_address' ? 'address' : initialData.locationMode) as "address" | "zone",
+                // Fix coordinates being null
+                coordinates: initialData.coordinates || { lat: 0, lng: 0 },
+                street: initialData.address || "", // Fallback address to street if not parsed
+                city: initialData.city || "",
+                country: "Argentina", // Default
+                zone: initialData.zone || "",
+                whatsapp: initialData.whatsapp || "",
+                website: initialData.website || "",
+                instagram: initialData.instagram || "",
+                facebook: initialData.facebook || "",
+                phone: initialData.phone || "",
+                logo: initialData.logo || "",
+                image: initialData.image || "",
+                openTime: initialData.openTime || "",
+                closeTime: initialData.closeTime || "",
             }
             : {
                 name: "",
@@ -126,8 +168,8 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 instagram: "",
                 facebook: "",
                 phone: "",
-                openTime: "09:00",
-                closeTime: "22:00",
+                openTime: "",
+                closeTime: "",
                 image: "",
                 logo: "",
                 rating: 5.0,
@@ -143,12 +185,12 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
 
     // Initialize form with split address if initialData exists
     if (initialData && !form.getValues("street")) {
-        const parts = initialData.address.split(",").map(s => s.trim())
+        const parts = initialData.address ? initialData.address.split(",").map(s => s.trim()) : []
         if (parts.length >= 3) {
             form.setValue("street", parts[0])
             form.setValue("city", parts[1])
             form.setValue("country", parts.slice(2).join(", "))
-        } else {
+        } else if (initialData.address) {
             form.setValue("street", initialData.address)
         }
     }
@@ -195,16 +237,16 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
 
             const venueData = {
                 region_code: regionCode,
-                name: values.name,
+                name: { es: values.name }, // Wrap in JSONB
                 slug: values.slug,
-                description: values.description,
+                description: { es: values.description }, // Wrap in JSONB
                 category: values.category === "new_custom" ? values.customCategory : values.category,
                 venue_type: values.venueType,
                 location_mode: values.locationMode,
                 zone: values.zone,
                 address: values.locationMode === 'address'
-                    ? `${values.street}, ${values.city}, ${values.country}`
-                    : `${values.zone}, ${values.city}, ${values.country}`,
+                    ? `${values.street || ''}, ${values.city}, ${values.country}` // Safe fallback
+                    : `${values.zone || ''}, ${values.city}, ${values.country}`, // Safe fallback
                 coordinates: values.coordinates,
                 whatsapp: values.whatsapp,
                 website: values.website,
@@ -256,10 +298,26 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
             router.push("/admin/venues")
             router.refresh()
         } catch (error: any) {
-            console.error(error)
+            console.error("Error saving venue:", JSON.stringify(error, null, 2))
+
+            let errorMessage = "Ocurrió un error al guardar el local."
+
+            // Check for Postgres unique violation (duplicate key)
+            if (error?.code === '23505') {
+                if (error?.message?.includes('slug')) {
+                    errorMessage = "El slug ya existe. Por favor elija otro URL amigable."
+                } else if (error?.message?.includes('name')) {
+                    errorMessage = "Ya existe un local con este nombre."
+                } else {
+                    errorMessage = "Ya existe un registro con estos datos únicos."
+                }
+            } else if (error?.message) {
+                errorMessage = error.message
+            }
+
             toast({
-                title: "Error",
-                description: error.message || "Algo salió mal.",
+                title: "Error al guardar",
+                description: errorMessage,
                 variant: "destructive",
             })
         } finally {
@@ -353,7 +411,14 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                console.error("Form Validation Errors:", errors)
+                toast({
+                    title: "Error de validación",
+                    description: "Por favor revise los campos en rojo.",
+                    variant: "destructive",
+                })
+            })} className="space-y-8">
                 <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-[1fr_300px]">
                     <div className="space-y-6">
                         <Card>
@@ -685,6 +750,31 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                                         )}
                                     />
                                 </div>
+                                <Separator className="my-4" />
+                                <div className="space-y-4">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="schedule">
+                                            <AccordionTrigger>Horarios de Atención</AccordionTrigger>
+                                            <AccordionContent>
+                                                <FormField
+                                                    control={form.control}
+                                                    name="schedule"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormControl>
+                                                                <ScheduleEditor
+                                                                    value={field.value}
+                                                                    onChange={field.onChange}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -841,31 +931,7 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                                         />
                                     </div>
                                 </div>
-                                <Separator />
-                                <div className="space-y-4">
-                                    <Accordion type="single" collapsible className="w-full">
-                                        <AccordionItem value="schedule">
-                                            <AccordionTrigger>Horarios de Atención</AccordionTrigger>
-                                            <AccordionContent>
-                                                <FormField
-                                                    control={form.control}
-                                                    name="schedule"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl>
-                                                                <ScheduleEditor
-                                                                    value={field.value}
-                                                                    onChange={field.onChange}
-                                                                />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
-                                </div>
+
                                 <Separator />
 
                                 <FormField

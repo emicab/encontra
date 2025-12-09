@@ -15,6 +15,26 @@ CREATE TABLE IF NOT EXISTS venue_requests (
   security text,
   region_code text DEFAULT 'tdf',
   zone text,
+  -- Expanded fields
+  slug text,
+  image text,
+  logo text,
+  website text,
+  instagram text,
+  facebook text,
+  whatsapp text,
+  open_time text,
+  close_time text,
+  days_open jsonb,
+  coordinates jsonb,
+  venue_type text,
+  subscription_plan text DEFAULT 'free',
+  service_delivery boolean DEFAULT false,
+  service_pickup boolean DEFAULT false,
+  service_arrangement boolean DEFAULT false,
+  street text,
+  house_number text,
+  city text,
   status text DEFAULT 'pending' -- pending, contacted, rejected, approved
 );
 

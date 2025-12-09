@@ -38,11 +38,38 @@ interface VenueRequest {
     location: string
     region_code: string
     zone?: string
+    // Expanded fields
+    slug?: string
+    image?: string
+    logo?: string
+    website?: string
+    instagram?: string
+    facebook?: string
+    whatsapp?: string
+    open_time?: string
+    close_time?: string
+    days_open?: any
+    coordinates?: any
+    venue_type?: string
+    subscription_plan?: string
+    service_delivery?: boolean
+    service_pickup?: boolean
+    service_arrangement?: boolean
+    street?: string
+    house_number?: string
+    city?: string
+    location_type?: string
+    hours?: string
 }
+
+import { slugify } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 export default function RequestsPage() {
     const [requests, setRequests] = useState<VenueRequest[]>([])
     const [loading, setLoading] = useState(true)
+    const [processingId, setProcessingId] = useState<string | null>(null)
+    const { toast } = useToast()
 
     useEffect(() => {
         fetchRequests()
@@ -61,6 +88,110 @@ export default function RequestsPage() {
             console.error("Error fetching requests:", error)
         } finally {
             setLoading(false)
+        }
+    }
+    async function handleApprove(request: VenueRequest) {
+        setProcessingId(request.id)
+        try {
+            // 1. Prepare Venue Data
+            // Ensure slug is unique
+            let baseSlug = request.slug || slugify(request.name)
+            let uniqueSlug = baseSlug
+            let counter = 1
+
+            // Loop until we find a unique slug
+            while (true) {
+                const { data } = await supabase
+                    .from('venues')
+                    .select('id')
+                    .eq('slug', uniqueSlug)
+                    .maybeSingle()
+
+                if (!data) break // Slug is unique
+
+                uniqueSlug = `${baseSlug}-${counter}`
+                counter++
+            }
+
+            const venueData = {
+                name: { es: request.name }, // Schema requires JSONB
+                slug: uniqueSlug, // Use the verified unique slug
+                description: { es: request.description }, // Schema requires JSONB
+                category: request.category,
+                custom_category: request.custom_category,
+                phone: request.whatsapp || request.phone,
+                whatsapp: request.whatsapp,
+                instagram: request.instagram,
+                website: request.website,
+                facebook: request.facebook,
+                image: request.image,
+                logo: request.logo,
+                address: request.location || '', // Explicitly mapping to address column from schema
+                location_mode: request.location_type === 'zone' ? 'zone' : 'exact_address',
+                city: request.city || request.zone || '',
+                zone: request.zone || '',
+                region_code: request.region_code || 'tdf', // Fallback to 'tdf' to satisfy FK if missing
+                coordinates: request.coordinates,
+                venue_type: request.venue_type || 'physical',
+                subscription_plan: request.subscription_plan || 'free',
+                service_delivery: request.service_delivery,
+                service_pickup: request.service_pickup,
+                service_arrangement: request.service_arrangement,
+                hours: request.hours || '',
+                schedule: request.days_open || {
+                    monday: { isOpen: true, ranges: [{ start: "09:00", end: "17:00" }] },
+                    tuesday: { isOpen: true, ranges: [{ start: "09:00", end: "17:00" }] },
+                    wednesday: { isOpen: true, ranges: [{ start: "09:00", end: "17:00" }] },
+                    thursday: { isOpen: true, ranges: [{ start: "09:00", end: "17:00" }] },
+                    friday: { isOpen: true, ranges: [{ start: "09:00", end: "17:00" }] },
+                    saturday: { isOpen: true, ranges: [{ start: "10:00", end: "14:00" }] },
+                    sunday: { isOpen: false, ranges: [] },
+                },
+                rating: 0,
+                review_count: 0,
+                is_open: true // Default to open
+            }
+
+            // 2. Insert into Venues
+            const { error: insertError } = await supabase
+                .from("venues")
+                .insert([venueData])
+
+            if (insertError) throw insertError
+
+            // 3. Update Request Status to Approved
+            const { error: updateError } = await supabase
+                .from("venue_requests")
+                .update({ status: 'approved' })
+                .eq('id', request.id)
+
+            if (updateError) throw updateError
+
+            toast({
+                title: "Local creado exitosamente",
+                description: `Se ha creado el local ${request.name
+                    } y aprobado la solicitud.`
+            })
+
+            fetchRequests()
+
+        } catch (error: any) {
+            console.error("Error approving request:", JSON.stringify(error, null, 2))
+
+            let errorMessage = "Ocurrió un error al crear el local."
+            if (error?.code === '23505') {
+                errorMessage = "Ya existe un registro con información duplicada (ej. nombre o slug)."
+            } else if (error?.message) {
+                errorMessage = error.message
+            }
+
+            toast({
+                variant: "destructive",
+                title: "Error al aprobar",
+                description: errorMessage
+            })
+        } finally {
+            setProcessingId(null)
         }
     }
 
@@ -116,60 +247,123 @@ export default function RequestsPage() {
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
                                                 </DialogTrigger>
-                                                <DialogContent className="max-w-2xl">
+                                                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                                                     <DialogHeader>
                                                         <DialogTitle>Detalle de Solicitud</DialogTitle>
                                                         <DialogDescription>
-                                                            Enviado el {format(new Date(request.created_at), "dd/MM/yyyy HH:mm")}
+                                                            Solicitud recibida el {format(new Date(request.created_at), "dd/MM/yyyy HH:mm")}
                                                         </DialogDescription>
                                                     </DialogHeader>
-                                                    <div className="grid grid-cols-2 gap-4 py-4">
-                                                        <div className="space-y-1">
-                                                            <h4 className="font-semibold">Negocio</h4>
-                                                            <p className="text-sm">{request.name}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <h4 className="font-semibold">Rubro</h4>
-                                                            <p className="text-sm">{request.category}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <h4 className="font-semibold">Teléfono</h4>
-                                                            <p className="text-sm">{request.phone}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <h4 className="font-semibold">Ubicación</h4>
-                                                            <p className="text-sm">{request.location || "No especificada"}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <h4 className="font-semibold">Región</h4>
-                                                            <p className="text-sm uppercase">{request.region_code || "TDF"}</p>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <h4 className="font-semibold">Zona</h4>
-                                                            <p className="text-sm">{request.zone || "No detectada"}</p>
-                                                        </div>
-                                                        <div className="col-span-2 space-y-1">
-                                                            <h4 className="font-semibold">Descripción</h4>
-                                                            <p className="text-sm text-muted-foreground">{request.description}</p>
+
+                                                    <div className="grid grid-cols-2 gap-6 py-4">
+                                                        {/* Owner Info */}
+                                                        <div className="col-span-2 md:col-span-1 space-y-4">
+                                                            <h3 className="font-semibold text-lg border-b pb-2">Datos del Dueño</h3>
+                                                            <div className="space-y-1">
+                                                                <span className="text-xs text-muted-foreground block">Nombre</span>
+                                                                <p>{request.owner_name || '-'}</p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <span className="text-xs text-muted-foreground block">Email</span>
+                                                                <p>{request.owner_email || '-'}</p>
+                                                            </div>
                                                         </div>
 
-                                                        <div className="col-span-2 border-t pt-4 mt-2">
-                                                            <h4 className="font-semibold mb-2">Diagnóstico</h4>
-                                                            <div className="grid grid-cols-3 gap-4">
-                                                                <div className="p-3 bg-muted rounded-lg">
-                                                                    <span className="text-xs font-medium text-muted-foreground block mb-1">Visibilidad</span>
-                                                                    <span className="text-sm font-semibold">{request.visibility}</span>
-                                                                </div>
-                                                                <div className="p-3 bg-muted rounded-lg">
-                                                                    <span className="text-xs font-medium text-muted-foreground block mb-1">Fricción</span>
-                                                                    <span className="text-sm font-semibold">{request.friction}</span>
-                                                                </div>
-                                                                <div className="p-3 bg-muted rounded-lg">
-                                                                    <span className="text-xs font-medium text-muted-foreground block mb-1">Seguridad</span>
-                                                                    <span className="text-sm font-semibold">{request.security}</span>
+                                                        {/* Contact Info */}
+                                                        <div className="col-span-2 md:col-span-1 space-y-4">
+                                                            <h3 className="font-semibold text-lg border-b pb-2">Contacto</h3>
+                                                            <div className="space-y-1">
+                                                                <span className="text-xs text-muted-foreground block">WhatsApp</span>
+                                                                <p>{request.whatsapp || request.phone || '-'}</p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <span className="text-xs text-muted-foreground block">Redes</span>
+                                                                <div className="flex gap-2 flex-wrap">
+                                                                    {request.instagram && <Badge variant="outline">IG: {request.instagram}</Badge>}
+                                                                    {request.website && <Badge variant="outline">Web</Badge>}
+                                                                    {request.facebook && <Badge variant="outline">FB</Badge>}
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Venue Info */}
+                                                        <div className="col-span-2 space-y-4">
+                                                            <h3 className="font-semibold text-lg border-b pb-2">Datos del Local</h3>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-1">
+                                                                    <span className="text-xs text-muted-foreground block">Nombre</span>
+                                                                    <p className="font-medium">{request.name}</p>
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <span className="text-xs text-muted-foreground block">Rubro</span>
+                                                                    <p>{request.category === 'other' ? request.custom_category : request.category}</p>
+                                                                </div>
+                                                                <div className="space-y-1 col-span-2">
+                                                                    <span className="text-xs text-muted-foreground block">Descripción</span>
+                                                                    <p className="text-sm">{request.description}</p>
+                                                                </div>
+
+                                                                {/* Location */}
+                                                                <div className="col-span-2 bg-muted/30 p-3 rounded-md">
+                                                                    <h4 className="font-medium text-sm mb-2">Ubicación</h4>
+                                                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                                                        <div><span className="text-xs text-muted-foreground">Dirección:</span> {request.location}</div>
+                                                                        <div><span className="text-xs text-muted-foreground">Tipo:</span> {request.location_type}</div>
+                                                                        <div><span className="text-xs text-muted-foreground">Zona:</span> {request.zone}</div>
+                                                                        <div><span className="text-xs text-muted-foreground">Región:</span> {request.region_code}</div>
+                                                                        {request.coordinates?.lat && (
+                                                                            <div className="col-span-2 text-xs font-mono mt-1">
+                                                                                Coords: {request.coordinates.lat?.toFixed(5)}, {request.coordinates.lng?.toFixed(5)}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Images */}
+                                                                {(request.image || request.logo) && (
+                                                                    <div className="col-span-2 flex gap-4 mt-2">
+                                                                        {request.logo && (
+                                                                            <div className="text-center">
+                                                                                <span className="text-xs block mb-1">Logo</span>
+                                                                                <img src={request.logo} alt="Logo" className="w-16 h-16 rounded-full object-cover border mx-auto" />
+                                                                            </div>
+                                                                        )}
+                                                                        {request.image && (
+                                                                            <div className="text-center">
+                                                                                <span className="text-xs block mb-1">Portada</span>
+                                                                                <img src={request.image} alt="Portada" className="w-48 h-24 rounded object-cover border mx-auto" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Diagnostic */}
+                                                        <div className="col-span-2 pt-2">
+                                                            <h3 className="font-semibold text-sm mb-2 text-muted-foreground">Diagnóstico</h3>
+                                                            <div className="flex gap-4 text-xs">
+                                                                <Badge variant="secondary">Visibilidad: {request.visibility}</Badge>
+                                                                <Badge variant="secondary">Fricción: {request.friction}</Badge>
+                                                                <Badge variant="secondary">Seguridad: {request.security}</Badge>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                                                        <Button variant="outline" disabled={request.status !== 'pending'}>Rechazar</Button>
+                                                        {request.status === 'pending' && (
+                                                            <Button
+                                                                onClick={() => handleApprove(request)}
+                                                                disabled={processingId === request.id}
+                                                            >
+                                                                {processingId === request.id ? (
+                                                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando</>
+                                                                ) : (
+                                                                    "Aprobar y Crear Local"
+                                                                )}
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>

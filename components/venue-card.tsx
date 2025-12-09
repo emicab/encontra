@@ -27,6 +27,24 @@ export function VenueCard({ venue }: VenueCardProps) {
   // Clean zone/city slug
   const citySlug = slugify(venue.zone || 'general')
 
+  // Helper to get localized string
+  const getName = (name: any) => {
+    if (typeof name === 'object' && name !== null) {
+      return name.es || name.en || ""
+    }
+    return name
+  }
+
+  const getDescription = (desc: any) => {
+    if (typeof desc === 'object' && desc !== null) {
+      return desc.es || desc.en || ""
+    }
+    return desc
+  }
+
+  const venueName = getName(venue.name)
+  const venueDescription = getDescription(venue.description)
+
   return (
     <Card className={cn(
       "overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1 h-full",
@@ -60,26 +78,51 @@ export function VenueCard({ venue }: VenueCardProps) {
             </Badge>
           </div>
         </div>
-        <CardContent className="p-3">
-          <div className="flex justify-between items-start mb-1">
-            <h3 className="font-bold text-base line-clamp-1 group-hover:text-primary transition-colors">
-              {venue.name}
+        <div className="flex flex-col gap-1.5 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold leading-none tracking-tight line-clamp-1 group-hover:text-primary transition-colors">
+              {venueName}
             </h3>
-            <div className="flex items-center gap-1 bg-secondary/50 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">
-              <Star className="h-3 w-3 fill-primary text-primary" />
-              <span>{venue.rating}</span>
+            {venue.rating > 0 && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-xs font-medium text-primary shrink-0">
+                <Star className="h-3 w-3 fill-primary" />
+                <span>{venue.rating}</span>
+              </div>
+            )}
+          </div>
+          {/* Add zone/city display */}
+          {(venue.zone || venue.city) && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              <span className="line-clamp-1">
+                {[venue.zone, venue.city].filter(Boolean).join(", ")}
+              </span>
             </div>
-          </div>
-          <p className="text-muted-foreground text-xs line-clamp-1 mb-2">{venue.description}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span className="line-clamp-1">{venue.locationMode === 'zone' ? venue.zone : venue.address}</span>
-          </div>
+          )}
+          <p className="line-clamp-2 text-sm text-muted-foreground mt-1">
+            {venueDescription}
+          </p>
+        </div>
+        <CardContent className="p-3 pt-0">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3 shrink-0" />
               <span>
-                {venue.openTime} - {venue.closeTime}
+                {(() => {
+                  if (venue.schedule) {
+                    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+                    const now = new Date()
+                    const dayName = days[now.getDay()]
+                    const daySchedule = venue.schedule[dayName]
+
+                    if (!daySchedule || !daySchedule.isOpen) return "Cerrado hoy"
+                    if (daySchedule.ranges && daySchedule.ranges.length > 0) {
+                      return `${daySchedule.ranges[0].start} - ${daySchedule.ranges[0].end}`
+                    }
+                  }
+                  // Fallback for venues without schedule object
+                  return venue.openTime && venue.closeTime ? `${venue.openTime} - ${venue.closeTime}` : "Consultar horario"
+                })()}
               </span>
             </div>
           </div>

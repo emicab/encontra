@@ -64,6 +64,13 @@ export default function EditVenuePage() {
                         servicePickup: data.service_pickup || false,
                         serviceArrangement: data.service_arrangement || false,
                         schedule: data.schedule,
+                        city: data.city,
+                        regionCode: data.region_code,
+                        logo: data.logo,
+                        website: data.website,
+                        instagram: data.instagram,
+                        facebook: data.facebook,
+                        phone: data.phone,
                     }
                     setVenue(mappedVenue)
                 }
@@ -96,7 +103,7 @@ export default function EditVenuePage() {
                 <h2 className="text-3xl font-bold tracking-tight">Editar Local</h2>
                 <p className="text-muted-foreground">Actualizar información del local.</p>
             </div>
-            <VenueForm initialData={venue} />
+            <VenueForm initialData={venue} isAdmin={isAdmin} />
         </div>
     )
 }

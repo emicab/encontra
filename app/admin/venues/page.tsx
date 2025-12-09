@@ -11,6 +11,18 @@ import { supabase } from "@/lib/supabase"
 import { Plus, Pencil, Trash2, MapPin, Loader2, Package } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 export default function VenuesPage() {
     const [venues, setVenues] = useState<Venue[]>([])
     const [loading, setLoading] = useState(true)
@@ -74,8 +86,6 @@ export default function VenuesPage() {
     }
 
     async function deleteVenue(id: string) {
-        if (!confirm("¿Estás seguro de que deseas eliminar este local?")) return
-
         try {
             const { error } = await supabase.from("venues").delete().eq("id", id)
             if (error) throw error
@@ -190,14 +200,28 @@ export default function VenuesPage() {
                                                     <Pencil className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive"
-                                                onClick={() => deleteVenue(venue.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Esta acción no se puede deshacer. Se eliminará permanentemente el local y todos sus datos asociados.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => deleteVenue(venue.id)} className="bg-destructive hover:bg-destructive/90">
+                                                            Eliminar
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </div>
                                     </TableCell>
                                 </TableRow>

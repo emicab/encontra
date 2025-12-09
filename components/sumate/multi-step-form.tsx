@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import ImageUpload from "@/components/ui/image-upload"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -22,28 +23,40 @@ import { REGIONS } from "@/lib/regions"
 const formSchema = z.object({
     // Step 1: Business Info
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-    ownerName: z.string().min(2, "Tu nombre es requerido"),
-    ownerEmail: z.string().email("Ingresá un email válido"),
     category: z.string().min(1, "Seleccioná un rubro"),
     customCategory: z.string().optional(),
     description: z.string().min(10, "Contanos un poco más sobre tu negocio (mínimo 10 caracteres)"),
-    phone: z.string().min(8, "Ingresá un número de contacto válido"),
-    hours: z.string().optional(),
-    location: z.string().optional(),
-    locationType: z.enum(["address", "zone"]).optional(),
 
-    // Step 2: Diagnostic
-    visibility: z.enum(["yes", "no", "dont_know"], { required_error: "Por favor seleccioná una opción" }),
-    friction: z.enum(["few", "many", "too_many"], { required_error: "Por favor seleccioná una opción" }),
-    security: z.enum(["yes", "no"], { required_error: "Por favor seleccioná una opción" }),
+    // Step 2: Contact & Socials
+    ownerName: z.string().min(2, "Tu nombre es requerido"),
+    ownerEmail: z.string().email("Ingresá un email válido"),
+    whatsapp: z.string().min(8, "Ingresá un WhatsApp válido"),
+    instagram: z.string().optional(),
+    website: z.string().optional(),
+    facebook: z.string().optional(),
+
+    // Step 3: Multimedia
+    image: z.string().optional(), // Cover image (Full)
+    logo: z.string().optional(), // Profile (Basic)
+
+    // Step 4: Location & Schedule
+    location: z.string().min(5, "Ingresá una dirección o zona"), // Address input
+    locationType: z.enum(["address", "zone"]),
+    coordinates: z.object({ lat: z.number(), lng: z.number() }).optional(),
+    street: z.string().optional(),
+    city: z.string().optional(),
+    zone: z.string().optional(),
+    hours: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
 
 const steps = [
     { id: 1, title: "Tu Negocio" },
-    { id: 2, title: "Diagnóstico" },
-    { id: 3, title: "Confirmación" },
+    { id: 2, title: "Contacto" },
+    { id: 3, title: "Multimedia" },
+    { id: 4, title: "Ubicación" },
+    { id: 5, title: "Confirmación" },
 ]
 
 export function SumateForm() {
@@ -61,13 +74,15 @@ export function SumateForm() {
             category: "",
             customCategory: "",
             description: "",
-            phone: "",
-            hours: "",
+            whatsapp: "",
+            instagram: "",
+            website: "",
+            facebook: "",
+            image: "",
+            logo: "",
             location: "",
             locationType: "address",
-            visibility: undefined,
-            friction: undefined,
-            security: undefined,
+            hours: "",
         },
         mode: "onChange",
     })
@@ -77,10 +92,16 @@ export function SumateForm() {
     const nextStep = async () => {
         let fieldsToValidate: (keyof FormData)[] = []
         if (step === 1) {
-            fieldsToValidate = ["name", "ownerName", "ownerEmail", "category", "description", "phone", "hours", "location", "locationType"]
+            fieldsToValidate = ["name", "category", "description"]
             if (category === "other") fieldsToValidate.push("customCategory")
         } else if (step === 2) {
-            fieldsToValidate = ["visibility", "friction", "security"]
+            fieldsToValidate = ["ownerName", "ownerEmail", "whatsapp"]
+        } else if (step === 3) {
+            // Optional images
+            fieldsToValidate = []
+        } else if (step === 4) {
+            // Should not be called via 'nextStep' button generally, as button is submit, but for consistency
+            fieldsToValidate = ["location", "locationType"] // Hours optional
         }
 
         const isValid = await form.trigger(fieldsToValidate)
@@ -96,73 +117,83 @@ export function SumateForm() {
     const onSubmit = async (data: FormData) => {
         setIsPending(true)
         try {
-            let detectedRegion = regionCode
+            let detectedRegion = regionCode || ""
             let detectedZone = ""
+            let lat = 0
+            let lng = 0
 
+            // Geocoding logic
             if (data.location) {
                 try {
-                    // Always try to detect zone and region from address if provided
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(data.location)}&format=json&addressdetails=1&limit=1`)
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(data.location)}&limit=1&addressdetails=1`)
                     const results = await response.json()
 
                     if (results && results.length > 0) {
-                        const address = results[0].address
+                        const result = results[0]
+                        lat = parseFloat(result.lat)
+                        lng = parseFloat(result.lon)
+                        const address = result.address
 
-                        // Extract Zone (City/Town/Village/Suburb)
+                        // Extract zone
                         detectedZone = address.city || address.town || address.village || address.suburb || address.municipality || ""
 
-                        if (!detectedRegion) {
-                            // Nominatim returns 'state' for Argentina provinces
-                            const state = address.state || address.province || ""
-
-                            const match = Object.entries(REGIONS).find(([_, name]) => {
-                                return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
-                            })
-
-                            if (match) detectedRegion = match[0]
-                        }
+                        // Extract region logic as before
+                        const state = address.state || address.province || ""
+                        const match = Object.entries(REGIONS).find(([_, name]) => {
+                            return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
+                        })
+                        if (match) detectedRegion = match[0]
                     }
-                } catch (error) {
-                    console.error("Error detecting details from address:", error)
+                } catch (e) {
+                    console.error("Geocoding failed", e)
                 }
             }
 
-            const { error } = await supabase.from("venue_requests").insert([{
+            const { error } = await supabase.from("venue_requests").insert({
                 name: data.name,
-                owner_name: data.ownerName,
-                owner_email: data.ownerEmail,
-                category: data.category === "other" ? data.customCategory : data.category,
+                category: data.category,
                 custom_category: data.customCategory,
                 description: data.description,
-                phone: data.phone,
-                hours: data.hours,
+                phone: data.whatsapp, // Using whatsapp as main phone
+                whatsapp: data.whatsapp,
+                owner_name: data.ownerName, // Make sure these match DB columns
+                owner_email: data.ownerEmail,
+                instagram: data.instagram,
+                website: data.website,
+                facebook: data.facebook,
+                image: data.image,
+                logo: data.logo,
                 location: data.location,
                 location_type: data.locationType,
-                visibility: data.visibility,
-                friction: data.friction,
-                security: data.security,
-                region_code: detectedRegion || 'tdf',
-                zone: detectedZone,
-            }])
+                hours: data.hours,
+                coordinates: { lat, lng },
+                region_code: detectedRegion,
+                zone: detectedZone || data.zone, // Fallback to manual zone if added in future
+                status: 'pending'
+            })
 
             if (error) throw error
 
-            setStep(3) // Move to success step
             toast({
-                title: "¡Solicitud enviada!",
-                description: "Nos pondremos en contacto con vos pronto.",
+                title: "¡Solicitud Recibida!",
+                description: "Vamos a revisar tu información y te contactaremos pronto.",
             })
+
+            setStep(5) // Show success step
+
         } catch (error) {
-            console.error("Error submitting form:", error)
+            console.error(error)
             toast({
-                title: "Error",
-                description: "Hubo un problema al enviar tu solicitud. Por favor intentá nuevamente.",
                 variant: "destructive",
+                title: "Error",
+                description: "Hubo un problema al enviar la solicitud.",
             })
         } finally {
             setIsPending(false)
         }
     }
+
+
 
     return (
         <div className="w-full max-w-2xl mx-auto">
@@ -189,13 +220,15 @@ export function SumateForm() {
                 </div>
             </div>
 
-            <Card className="border-2 shadow-lg">
+            <Card className="border-2 shadow-lg mb-10">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        {/* Step 1: Business Info */}
                         {step === 1 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <CardHeader>
-                                    <CardTitle>Contanos sobre tu negocio</CardTitle>
+                                    <CardTitle>Tu Negocio</CardTitle>
+                                    <p className="text-muted-foreground">Contanos lo básico para empezar.</p>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <FormField
@@ -211,35 +244,6 @@ export function SumateForm() {
                                             </FormItem>
                                         )}
                                     />
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="ownerName"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Tu Nombre</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Ej: Juan Pérez" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="ownerEmail"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Tu Email</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="juan@ejemplo.com" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
 
                                     <FormField
                                         control={form.control}
@@ -303,59 +307,205 @@ export function SumateForm() {
                                             </FormItem>
                                         )}
                                     />
+                                </CardContent>
+                                <CardFooter className="flex justify-end">
+                                    <Button type="button" onClick={nextStep}>
+                                        Siguiente <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </CardFooter>
+                            </div>
+                        )}
 
-                                    <FormField
-                                        control={form.control}
-                                        name="phone"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Teléfono / WhatsApp</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Ej: 11 1234 5678" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Para contactarte y darte la devolución.
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
+                        {/* Step 2: Contact Info */}
+                        {step === 2 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <CardHeader>
+                                    <CardTitle>Contacto</CardTitle>
+                                    <p className="text-muted-foreground">¿Cómo te contactamos a vos y a tu negocio?</p>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField
                                             control={form.control}
-                                            name="hours"
+                                            name="ownerName"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Horarios (Opcional)</FormLabel>
+                                                    <FormLabel>Tu Nombre (Dueño/Encargado)</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Ej: Lun-Vie 9-18hs" {...field} />
+                                                        <Input placeholder="Ej: Juan Pérez" {...field} />
                                                     </FormControl>
-                                                    <FormDescription>
-                                                        Para que sepan cuándo encontrarte.
-                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
-
                                         <FormField
                                             control={form.control}
-                                            name="location"
+                                            name="ownerEmail"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Ubicación / Zona (Opcional)</FormLabel>
+                                                    <FormLabel>Tu Email Personal</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Ej: Av. Corrientes 1234 o 'Palermo'" {...field} />
+                                                        <Input placeholder="juan@ejemplo.com" {...field} />
                                                     </FormControl>
-                                                    <FormDescription>
-                                                        Si no tenés local, poné tu barrio.
-                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                     </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="whatsapp"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>WhatsApp del Negocio</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Ej: 2901 123456" {...field} />
+                                                </FormControl>
+                                                <FormDescription>Para que los clientes te contacten.</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="instagram"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Instagram (Opcional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="@tu.negocio" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="facebook"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Facebook (Opcional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Tu Negocio" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="website"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Sitio Web (Opcional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="www.tunegocio.com" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="flex justify-between">
+                                    <Button type="button" variant="outline" onClick={prevStep}>
+                                        <ChevronLeft className="mr-2 h-4 w-4" /> Anterior
+                                    </Button>
+                                    <Button type="button" onClick={nextStep}>
+                                        Siguiente <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </CardFooter>
+                            </div>
+                        )}
+
+                        {/* Step 3: Multimedia / Images */}
+                        {step === 3 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <CardHeader>
+                                    <CardTitle>Multimedia</CardTitle>
+                                    <p className="text-muted-foreground">Dale vida a tu perfil (Subí tus imágenes).</p>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800 mb-4">
+                                        <strong>⭐ Tip:</strong> La Foto de Portada y Galería son beneficios exclusivos del <strong>Plan Negocio Full</strong>.
+                                    </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="logo"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Logo</FormLabel>
+                                                <FormControl>
+                                                    <ImageUpload
+                                                        value={field.value ? [field.value] : []}
+                                                        disabled={isPending}
+                                                        onChange={(url) => field.onChange(url)}
+                                                        onRemove={() => field.onChange("")}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>Tu logo cuadrado.</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="image"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Foto de Portada</FormLabel>
+                                                <FormControl>
+                                                    <ImageUpload
+                                                        value={field.value ? [field.value] : []}
+                                                        disabled={isPending}
+                                                        onChange={(url) => field.onChange(url)}
+                                                        onRemove={() => field.onChange("")}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>Foto apaisada/horizontal.</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                                <CardFooter className="flex justify-between">
+                                    <Button type="button" variant="outline" onClick={prevStep}>
+                                        <ChevronLeft className="mr-2 h-4 w-4" /> Anterior
+                                    </Button>
+                                    <Button type="button" onClick={nextStep}>
+                                        Siguiente <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </CardFooter>
+                            </div>
+                        )}
+
+                        {/* Step 4: Location */}
+                        {step === 4 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <CardHeader>
+                                    <CardTitle>Ubicación y Horarios</CardTitle>
+                                    <p className="text-muted-foreground">¿Dónde y cuándo te encuentran?</p>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="hours"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Horarios</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Ej: Lun-Vie 9-13 y 16-20hs" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
                                     <FormField
                                         control={form.control}
                                         name="locationType"
@@ -381,7 +531,7 @@ export function SumateForm() {
                                                                 <RadioGroupItem value="zone" />
                                                             </FormControl>
                                                             <FormLabel className="font-normal">
-                                                                Solo Zona/Barrio (Sin local o privado)
+                                                                Solo Zona (Sin local o privado)
                                                             </FormLabel>
                                                         </FormItem>
                                                     </RadioGroup>
@@ -390,128 +540,19 @@ export function SumateForm() {
                                             </FormItem>
                                         )}
                                     />
-                                </CardContent>
-                                <CardFooter className="flex justify-end">
-                                    <Button type="button" onClick={nextStep}>
-                                        Siguiente <ChevronRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </CardFooter>
-                            </div>
-                        )}
-
-                        {step === 2 && (
-                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                <CardHeader>
-                                    <CardTitle>Diagnóstico Rápido</CardTitle>
-                                    <p className="text-muted-foreground">Ayudanos a entender tus desafíos actuales.</p>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <FormField
-                                        control={form.control}
-                                        name="visibility"
-                                        render={({ field }) => (
-                                            <FormItem className="space-y-3">
-                                                <FormLabel className="text-base font-semibold">
-                                                    Visibilidad: "Si yo busco tu producto en Google ahora mismo, ¿aparecés primero?"
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <RadioGroup
-                                                        onValueChange={field.onChange}
-                                                        defaultValue={field.value}
-                                                        className="flex flex-col space-y-1"
-                                                    >
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="yes" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">Sí</FormLabel>
-                                                        </FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="no" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">No (o aparecen locales viejos)</FormLabel>
-                                                        </FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="dont_know" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">No sé</FormLabel>
-                                                        </FormItem>
-                                                    </RadioGroup>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
 
                                     <FormField
                                         control={form.control}
-                                        name="friction"
+                                        name="location"
                                         render={({ field }) => (
-                                            <FormItem className="space-y-3">
-                                                <FormLabel className="text-base font-semibold">
-                                                    Fricción de Venta: "¿Cuántas veces por semana te preguntan 'Precio' o 'Horario' por Instagram aunque ya lo hayas publicado?"
-                                                </FormLabel>
+                                            <FormItem>
+                                                <FormLabel>Dirección o Zona</FormLabel>
                                                 <FormControl>
-                                                    <RadioGroup
-                                                        onValueChange={field.onChange}
-                                                        defaultValue={field.value}
-                                                        className="flex flex-col space-y-1"
-                                                    >
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="few" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">Pocas</FormLabel>
-                                                        </FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="many" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">Muchas (Me quita tiempo)</FormLabel>
-                                                        </FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="too_many" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">Muchísimas</FormLabel>
-                                                        </FormItem>
-                                                    </RadioGroup>
+                                                    <Input placeholder="Ej: San Martin 500, Ushuaia" {...field} />
                                                 </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="security"
-                                        render={({ field }) => (
-                                            <FormItem className="space-y-3">
-                                                <FormLabel className="text-base font-semibold">
-                                                    Seguridad (Para los sin local): "¿Te sentís cómodo poniendo la dirección exacta de tu casa pública en internet?"
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <RadioGroup
-                                                        onValueChange={field.onChange}
-                                                        defaultValue={field.value}
-                                                        className="flex flex-col space-y-1"
-                                                    >
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="yes" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">Sí, no tengo problema.</FormLabel>
-                                                        </FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <RadioGroupItem value="no" />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">No, prefiero privacidad.</FormLabel>
-                                                        </FormItem>
-                                                    </RadioGroup>
-                                                </FormControl>
+                                                <FormDescription>
+                                                    Usamos esto para ubicarte en el mapa.
+                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -529,14 +570,15 @@ export function SumateForm() {
                             </div>
                         )}
 
-                        {step === 3 && (
+                        {/* Success Message - Technically not a form step but visual feedback */}
+                        {step === 5 && (
                             <div className="animate-in zoom-in duration-500 text-center py-8">
                                 <div className="mx-auto w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
                                     <Check className="h-8 w-8" />
                                 </div>
                                 <h2 className="text-2xl font-bold mb-2">¡Gracias por sumarte!</h2>
                                 <p className="text-muted-foreground mb-6">
-                                    Hemos recibido tu información. Analizaremos tu diagnóstico y te contactaremos con una propuesta a medida.
+                                    Hemos recibido tu información. Vamos a revisarla y crear tu perfil pronto.
                                 </p>
                                 <Button type="button" variant="outline" onClick={() => window.location.href = "/"}>
                                     Volver al Inicio

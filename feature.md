@@ -1,10 +1,19 @@
-# Encontrá - La Guía de Locales y Servicios `v1.5.0`
+# Encontrá - La Guía de Locales y Servicios `v1.6.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.6.0` - Refinamiento de Administración y Estabilidad
+*   **Mejoras en Panel de Administración**:
+    *   **Edición Robusta**: Solución definitiva a errores de validación al editar locales provenientes de `/sumate` (manejo de datos nulos y normalización de esquemas).
+    *   **UX de Seguridad**: Implementación de **Modal de Confirmación** (Shadcn Alert) para la eliminación de locales, reemplazando alertas nativas.
+    *   **Organización Visual**: Reordenamiento del formulario de edición, ubicando los horarios en la columna principal para mejor legibilidad.
+*   **Automatización de Flujos**:
+    *   **Horarios por Defecto**: Inyección automática de un esquema de horarios estándar (Lun-Vie 9-17) al aprobar solicitudes sin horarios detallados, facilitando la gestión posterior.
+    *   **Validación de Slugs**: Sistema de autoincremento para garantizar slugs únicos en aprobaciones (ej: `local-1`, `local-2`).
 
 ### `v1.5.0` - Routing Local y Automatización
 *   **Routing por Ciudad**:
