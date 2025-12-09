@@ -20,9 +20,9 @@ export default async function VenuePlansPage({ params }: Props) {
     }
 
     // Security check: Only visible if venue has an assigned owner
-    if (!venue.ownerId) {
-        notFound()
-    }
+    // if (!venue.ownerId) {
+    //    notFound()
+    // }
 
     const currentPlanKey = venue.subscriptionPlan
 

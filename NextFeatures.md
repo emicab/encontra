@@ -2,6 +2,34 @@
 
 Este documento analiza las oportunidades de mejora y nuevas funcionalidades para el proyecto, clasificadas por impacto y complejidad. Basado en el estado actual (`v1.6.0`).
 
+## 0. Killer Features (Diferenciación Estratégica)
+
+Estas son las funcionalidades "Novedosas" diseñadas para generar retención masiva y dependencia positiva (Efecto "SI O SI").
+
+### 🔍 Comparador de Precios Hiper-Local ("Google Shopping del Barrio")
+*   **Concepto**: Transformar el buscador para que no solo encuentre locales, sino **productos específicos** con sus precios en tiempo real.
+*   **Dinámica**:
+    *   Usuario busca "Pan" o "Milanesa".
+    *   Resultados muestran lista de productos ordenados por precio/cercanía:
+        *   *Pan Francés - $2000/kg - Panadería La Espiga (a 300m)*
+        *   *Pan Lactal - $3500 - Mercadito Tito (a 100m)*
+*   **Valor Estratégico**:
+    *   **Usuario**: Herramienta de ahorro diario. Convierte la app en uso frecuente (semanal/diario).
+    *   **Negocio**: Incentivo real para cargar precios y actualizar su catálogo. Le da sentido crudo a los límites del plan (Basic 10 productos vs Premium Ilimitado).
+*   **Costo Técnico**: Bajo. Utiliza la tabla `products` actual y consultas SQL de texto completo.
+
+### 🔗 Tu Bio Inteligente (Smart Link-in-Bio)
+*   **Concepto**: Posicionar el perfil de Encontrá como la **Landing Page oficial** para Instagram/TikTok/WhatsApp de los comerciantes.
+*   **El Gancho**: "Mejor que un Linktree". Una URL (`encontra.com.ar/[provincia]/[ciudad]/mi-local`) que:
+    *   Muestra estado **Abierto/Cerrado** en tiempo real.
+    *   Botón directo a **WhatsApp**.
+    *   Muestra el **Mapa** exacto.
+    *   Muestra tus **Productos/Menú** destacados.
+*   **Valor Estratégico**:
+    *   **Monetización**: Funcionalidad exclusiva del plan **Negocio Full** (Premium). Actúa como driver principal de conversión.
+    *   **Parasitismo de Tráfico**: Cada visita a sus redes sociales se convierte en tráfico para Encontrá.
+    *   **Retención**: Si dejan de usar Encontrá, se "rompe" su enlace principal de contacto en redes.
+
 ## 1. Experiencia de Usuario (Core UX)
 
 ### 🌟 Marcadores y Favoritos (Quick Win)
@@ -68,6 +96,8 @@ Este documento analiza las oportunidades de mejora y nuevas funcionalidades para
 
 | Prioridad | Feature | Complejidad | Impacto |
 | :--- | :--- | :---: | :---: |
+| **0 (Estratégica)** | **Comparador de Precios** | Baja | Game Changer 👑 |
+| **0 (Estratégica)** | **Bio Inteligente** | Media | Viralidad 🦠 |
 | **1 (Alta)** | **JSON-LD (SEO Local)** (✅ Implementado v1.6.0) | Baja | Alto 🚀 |
 | **2 (Alta)** | **Filtro "Abierto Ahora"** | Media | Alto ✨ |
 | **3 (Media)** | **WhatsApp Cart** | Media | Muy Alto 💰 |

@@ -6,6 +6,13 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.7.0` - Bio Inteligente (Smart Link-in-Bio)
+*   **Funcionalidad Estrella**:
+    *   **Página `/bio`**: Nueva vista ultra-simplificada para usar como enlace en redes sociales (Instagram/TikTok).
+    *   **Diseño para Conversión**: Botones grandes para WhatsApp, Mapa y Llamada. Muestra estado de apertura en tiempo real.
+    *   **Exclusividad**: Funcionalidad restringida a usuarios **Plan Negocio Full**.
+    *   **Upsell Automático**: Los locales Free/Basic ven una pantalla de "Bloqueo" invitándolos a mejorar su plan para desbloquear la Bio.
+
 ### `v1.6.0` - Refinamiento de Administración y Estabilidad
 *   **Mejoras en Panel de Administración**:
     *   **Edición Robusta**: Solución definitiva a errores de validación al editar locales provenientes de `/sumate` (manejo de datos nulos y normalización de esquemas).

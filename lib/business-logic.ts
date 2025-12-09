@@ -19,13 +19,13 @@ export const PLANS = {
     },
     basic: {
         name: "Emprendedor",
-        price: 6000,
+        price: 12000,
         features: {
             whatsapp: true,
             socials: true,
-            productsLimit: 10,
+            productsLimit: 5,
             verified: true,
-            coupons: true, // Limited to 1 active
+            coupons: true, // Limited to 3 active
             featured: false,
             galleryLimit: 3,
             analytics: true,
@@ -33,7 +33,7 @@ export const PLANS = {
     },
     premium: {
         name: "Negocio Full",
-        price: 15000,
+        price: 20000,
         features: {
             whatsapp: true,
             socials: true,
@@ -61,7 +61,7 @@ export function canCreateCoupon(venue: Venue, currentCouponCount: number) {
     const features = getVenueFeatures(venue)
     if (!features.coupons) return false
 
-    if (venue.subscriptionPlan === "basic" && currentCouponCount >= 1) return false
+    if (venue.subscriptionPlan === "basic" && currentCouponCount >= 3) return false
 
     return true
 }

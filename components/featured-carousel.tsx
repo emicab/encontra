@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import type { Venue } from "@/lib/data"
 import { useRegion } from "@/components/providers/region-provider"
 import { getVenueFeatures } from "@/lib/business-logic"
+import { slugify } from "@/lib/utils"
 import { t } from "@/lib/i18n"
 
 interface FeaturedCarouselProps {
@@ -38,7 +39,7 @@ export function FeaturedCarousel({ venues }: FeaturedCarouselProps) {
             className={`absolute inset-0 transition-opacity duration-500 ${index === currentIndex ? "opacity-100" : "opacity-0 pointer-events-none"
               }`}
           >
-            <Link href={`/${currentRegion || venue.regionCode || 'tdf'}/${venue.slug}`} className="block h-full w-full cursor-pointer group">
+            <Link href={`/${currentRegion || venue.regionCode || 'tdf'}/${slugify(venue.zone || 'general')}/${venue.slug}`} className="block h-full w-full cursor-pointer group">
               <img
                 src={venue.image || "/placeholder.svg"}
                 alt={venue.name}
