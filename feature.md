@@ -9,6 +9,7 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 ### `v1.7.0` - Bio Inteligente (Smart Link-in-Bio)
 *   **Funcionalidad Estrella**:
     *   **Página `/bio`**: Nueva vista ultra-simplificada para usar como enlace en redes sociales (Instagram/TikTok).
+    *   **URLs Cortas**: Acceso directo mediante `encontra.com.ar/bio-nombrenegocio` para compartir fácilmente.
     *   **Diseño para Conversión**: Botones grandes para WhatsApp, Mapa y Llamada. Muestra estado de apertura en tiempo real.
     *   **Exclusividad**: Funcionalidad restringida a usuarios **Plan Negocio Full**.
     *   **Upsell Automático**: Los locales Free/Basic ven una pantalla de "Bloqueo" invitándolos a mejorar su plan para desbloquear la Bio.

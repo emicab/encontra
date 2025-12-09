@@ -6,6 +6,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/bio-:slug',
+        destination: '/bio/:slug',
+      },
+    ]
+  },
 }
 
 export default nextConfig
