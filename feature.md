@@ -14,6 +14,9 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 *   **Automatización de Flujos**:
     *   **Horarios por Defecto**: Inyección automática de un esquema de horarios estándar (Lun-Vie 9-17) al aprobar solicitudes sin horarios detallados, facilitando la gestión posterior.
     *   **Validación de Slugs**: Sistema de autoincremento para garantizar slugs únicos en aprobaciones (ej: `local-1`, `local-2`).
+*   **SEO Local (JSON-LD)**:
+    *   Implementación de datos estructurados `LocalBusiness` en páginas de detalle.
+    *   Soporte para horarios semanales complejos, geolocalización y contacto.
 
 ### `v1.5.0` - Routing Local y Automatización
 *   **Routing por Ciudad**:
