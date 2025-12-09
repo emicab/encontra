@@ -428,7 +428,7 @@ export function SumateForm() {
                                     <CardTitle>Multimedia</CardTitle>
                                     <p className="text-muted-foreground">Dale vida a tu perfil (Subí tus imágenes).</p>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
+                                <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto">
                                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800 mb-4">
                                         <strong>⭐ Tip:</strong> La Foto de Portada y Galería son beneficios exclusivos del <strong>Plan Negocio Full</strong>.
                                     </div>
