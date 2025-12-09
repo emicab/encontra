@@ -8,7 +8,7 @@ import Link from "next/link"
 export const dynamic = 'force-dynamic'
 
 type Props = {
-    params: Promise<{ region: string; slug: string }>
+    params: Promise<{ region: string; city: string; slug: string }>
 }
 
 export default async function VenuePlansPage({ params }: Props) {

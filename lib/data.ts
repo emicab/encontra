@@ -97,6 +97,7 @@ export const venues: Venue[] = [
     logo: "/japanese-sushi-restaurant.png",
     gallery: ["/japanese-sushi-restaurant.png", "/sushi-platter-discount-coupon.jpg"],
     regionCode: "tdf",
+    zone: "Ushuaia",
     ownerId: "mock_owner_1",
   },
   {
@@ -127,6 +128,7 @@ export const venues: Venue[] = [
     serviceArrangement: false,
     logo: "/cozy-cafe-coffee.png",
     regionCode: "tdf",
+    zone: "Rio Grande",
   },
   {
     id: "3",
@@ -155,6 +157,7 @@ export const venues: Venue[] = [
     serviceArrangement: false,
     logo: "/gift-shop-with-souvenirs.jpg",
     regionCode: "cba",
+    zone: "Capital",
   },
   {
     id: "4",
@@ -182,6 +185,8 @@ export const venues: Venue[] = [
     servicePickup: false,
     serviceArrangement: false,
     logo: "/modern-cinema-theater-interior.jpg",
+    regionCode: "tdf",
+    zone: "Tolhuin",
   },
   {
     id: "5",
@@ -209,6 +214,8 @@ export const venues: Venue[] = [
     servicePickup: true,
     serviceArrangement: false,
     logo: "/chinese-dim-sum.png",
+    regionCode: "tdf",
+    zone: "Ushuaia",
   },
   {
     id: "6",
@@ -237,6 +244,8 @@ export const venues: Venue[] = [
     serviceArrangement: false,
     logo: "/rooftop-bar-sunset-view-cocktails.jpg",
     gallery: ["/rooftop-bar-sunset-view-cocktails.jpg", "/cocktails-happy-hour-sunset.jpg"],
+    regionCode: "tdf",
+    zone: "Ushuaia",
   },
 ]
 

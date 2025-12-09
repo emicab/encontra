@@ -36,6 +36,8 @@ interface VenueRequest {
     friction: string
     security: string
     location: string
+    region_code: string
+    zone?: string
 }
 
 export default function RequestsPage() {
@@ -137,6 +139,14 @@ export default function RequestsPage() {
                                                         <div className="space-y-1">
                                                             <h4 className="font-semibold">Ubicación</h4>
                                                             <p className="text-sm">{request.location || "No especificada"}</p>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <h4 className="font-semibold">Región</h4>
+                                                            <p className="text-sm uppercase">{request.region_code || "TDF"}</p>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <h4 className="font-semibold">Zona</h4>
+                                                            <p className="text-sm">{request.zone || "No detectada"}</p>
                                                         </div>
                                                         <div className="col-span-2 space-y-1">
                                                             <h4 className="font-semibold">Descripción</h4>

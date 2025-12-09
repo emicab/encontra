@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Venue } from "@/lib/data"
 import { getVenueFeatures, checkIsOpen } from "@/lib/business-logic"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 import { t } from "@/lib/i18n"
 import { useRegion } from "@/components/providers/region-provider"
 
@@ -24,12 +24,15 @@ export function VenueCard({ venue }: VenueCardProps) {
   // Use current region context if available, otherwise use venue's region
   const regionLink = regionCode || venue.regionCode || 'tdf' // Default fallback if data is bad
 
+  // Clean zone/city slug
+  const citySlug = slugify(venue.zone || 'general')
+
   return (
     <Card className={cn(
       "overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1 h-full",
       isPremium && "border-2 border-yellow-400 shadow-md"
     )}>
-      <Link href={`/${regionLink}/${venue.slug}`} className="block h-full">
+      <Link href={`/${regionLink}/${citySlug}/${venue.slug}`} className="block h-full">
         <div className="relative aspect-[3/2] overflow-hidden">
           <img
             src={venue.logo || venue.image || "/placeholder.svg"}

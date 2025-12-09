@@ -97,24 +97,33 @@ export function SumateForm() {
         setIsPending(true)
         try {
             let detectedRegion = regionCode
-            if (!detectedRegion && data.location) {
+            let detectedZone = ""
+
+            if (data.location) {
                 try {
+                    // Always try to detect zone and region from address if provided
                     const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(data.location)}&format=json&addressdetails=1&limit=1`)
                     const results = await response.json()
 
                     if (results && results.length > 0) {
                         const address = results[0].address
-                        // Nominatim returns 'state' for Argentina provinces
-                        const state = address.state || address.province || ""
 
-                        const match = Object.entries(REGIONS).find(([_, name]) => {
-                            return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
-                        })
+                        // Extract Zone (City/Town/Village/Suburb)
+                        detectedZone = address.city || address.town || address.village || address.suburb || address.municipality || ""
 
-                        if (match) detectedRegion = match[0]
+                        if (!detectedRegion) {
+                            // Nominatim returns 'state' for Argentina provinces
+                            const state = address.state || address.province || ""
+
+                            const match = Object.entries(REGIONS).find(([_, name]) => {
+                                return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
+                            })
+
+                            if (match) detectedRegion = match[0]
+                        }
                     }
                 } catch (error) {
-                    console.error("Error detecting region from address:", error)
+                    console.error("Error detecting details from address:", error)
                 }
             }
 
@@ -133,6 +142,7 @@ export function SumateForm() {
                 friction: data.friction,
                 security: data.security,
                 region_code: detectedRegion || 'tdf',
+                zone: detectedZone,
             }])
 
             if (error) throw error

@@ -1,10 +1,18 @@
-# Encontrá - La Guía de Locales y Servicios `v1.2.0`
+# Encontrá - La Guía de Locales y Servicios `v1.5.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.5.0` - Routing Local y Automatización
+*   **Routing por Ciudad**:
+    *   Estructura Jerárquica: `/[provincia]/[ciudad]` para listados locales y `/[provincia]/[ciudad]/[local]` para detalles.
+    *   **Contexto de Navegación**: El Navbar ahora muestra y permite cambiar la ciudad actual.
+*   **Inteligencia de Ubicación (OSM)**:
+    *   **Extracción de Zona**: Al ingresar una dirección en formularios ("/sumate" o Admin), se detecta automáticamente el barrio o ciudad y se asigna al campo `zone`.
+    *   **Autocompletado**: Integración con Nominatim para rellenar datos geográficos sin intervención manual.
 
 ### `v1.4.0` - Gestión de Planes y Flexibilidad
 *   **Página de Planes y Upgrades**:

@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS venue_requests (
   visibility text,
   friction text,
   security text,
+  region_code text DEFAULT 'tdf',
+  zone text,
   status text DEFAULT 'pending' -- pending, contacted, rejected, approved
 );
 

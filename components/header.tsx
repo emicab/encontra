@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MapPin, Search, User, LogOut, LayoutDashboard, Store, ChevronDown } from "lucide-react"
+import { MapPin, Search, User, LogOut, LayoutDashboard, Store, ChevronDown, ChevronLeft } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -15,9 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useRegion } from "@/components/providers/region-provider"
 import { getRegionName, REGIONS } from "@/lib/regions"
+import { slugify } from "@/lib/utils"
 import {
   CommandDialog,
   CommandEmpty,
@@ -25,6 +26,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command"
 
 interface HeaderProps {
@@ -34,10 +36,18 @@ interface HeaderProps {
 
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const regionCode = useRegion()
+  const params = useParams()
+  const citySlug = params?.city as string
   const regionName = getRegionName(regionCode)
+
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+
+  // Location Selector State
+  const [view, setView] = useState<'regions' | 'cities'>('regions')
+  const [cities, setCities] = useState<string[]>([])
+
   const router = useRouter()
 
   useEffect(() => {
@@ -47,8 +57,27 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   useEffect(() => {
     if (regionCode) {
       localStorage.setItem("lastRegion", regionCode)
+      fetchCities(regionCode)
+      // If we have a region but no specific city involved in this effect logic yet, defaults to showing cities if opened? 
+      // Actually let's default to 'cities' view if a region is selected, 'regions' if not.
+      setView('cities')
+    } else {
+      setView('regions')
     }
   }, [regionCode])
+
+  async function fetchCities(region: string) {
+    const { data } = await supabase
+      .from('venues')
+      .select('zone')
+      .eq('region_code', region)
+
+    if (data) {
+      // Extract unique zones, filter nulls/empties, sort
+      const uniqueCities = Array.from(new Set(data.map(v => v.zone).filter(Boolean))) as string[]
+      setCities(uniqueCities.sort())
+    }
+  }
 
   async function checkUser() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -71,6 +100,14 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     router.refresh()
   }
 
+  // Determine display name for location
+  // If we have a city slug, try to find the matching real name from our cities list, otherwise de-slugify or show slug
+  const cityName = citySlug
+    ? cities.find(c => slugify(c) === citySlug) || citySlug.replace(/-/g, ' ') // Simple fallback
+    : null
+
+  const displayLocation = cityName ? cityName : regionName
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="container mx-auto px-4 py-3">
@@ -88,9 +125,9 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <div>
                 <h1 className="text-lg font-bold text-foreground flex items-center">
                   {t.appName}
-                  {regionName && <span className="font-normal mx-1">en</span>}
-                  <span className={regionName ? "text-primary border-b border-primary/20 border-dashed" : ""}>
-                    {regionName || ""}
+                  {displayLocation && <span className="font-normal mx-1">en</span>}
+                  <span className={displayLocation ? "text-primary border-b border-primary/20 border-dashed" : ""}>
+                    {displayLocation || ""}
                   </span>
                   <ChevronDown className="h-4 w-4 ml-1 text-muted-foreground" />
                 </h1>
@@ -152,29 +189,67 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           </div>
         </div>
       </div>
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Buscar provincia..." />
+
+      <CommandDialog open={open} onOpenChange={(val) => {
+        setOpen(val)
+        if (val && regionCode) setView('cities') // Reset to cities view when opening if region exists
+        else if (val) setView('regions')
+      }}>
+        <CommandInput placeholder={view === 'cities' ? `Buscar ciudad en ${regionName}...` : "Buscar provincia..."} />
         <CommandList>
           <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-          <CommandGroup heading="Ubicaciones">
-            <CommandItem value="Todas las Provincias" onSelect={() => {
-              localStorage.removeItem("lastRegion")
-              window.location.href = "/"
-              setOpen(false)
-            }}>
-              <MapPin className="mr-2 h-4 w-4" />
-              Todas las Provincias
-            </CommandItem>
-            {Object.entries(REGIONS).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => (
-              <CommandItem key={code} value={name} onSelect={() => {
-                window.location.href = `/${code}`
+
+          {view === 'cities' && regionCode ? (
+            <CommandGroup heading={`Ciudades en ${regionName}`}>
+              <CommandItem onSelect={() => setView('regions')} className="font-medium text-muted-foreground">
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Cambiar Provincia
+              </CommandItem>
+              <CommandSeparator />
+
+              {/* Option to see all region */}
+              <CommandItem onSelect={() => {
+                router.push(`/${regionCode}`)
                 setOpen(false)
               }}>
                 <MapPin className="mr-2 h-4 w-4" />
-                {name}
+                Todas en {regionName}
               </CommandItem>
-            ))}
-          </CommandGroup>
+
+              {cities.map((city) => (
+                <CommandItem key={city} value={city} onSelect={() => {
+                  const slug = slugify(city)
+                  router.push(`/${regionCode}/${slug}`)
+                  setOpen(false)
+                }}>
+                  <MapPin className="mr-2 h-4 w-4" />
+                  {city}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : (
+            <CommandGroup heading="Provincias">
+              <CommandItem value="Todas las Provincias" onSelect={() => {
+                localStorage.removeItem("lastRegion")
+                window.location.href = "/"
+                setOpen(false)
+              }}>
+                <MapPin className="mr-2 h-4 w-4" />
+                Todas las Provincias
+              </CommandItem>
+              {Object.entries(REGIONS).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => (
+                <CommandItem key={code} value={name} onSelect={() => {
+                  // When selecting a region, go to that region page (and implicitly switch context)
+                  // We could also switch to 'cities' view but navigation seems more natural
+                  window.location.href = `/${code}`
+                  setOpen(false)
+                }}>
+                  <MapPin className="mr-2 h-4 w-4" />
+                  {name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </header>

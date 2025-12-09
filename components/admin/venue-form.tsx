@@ -177,6 +177,16 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                             return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
                         })
                         if (match) regionCode = match[0]
+
+                        // Auto-detect zone if not manually specified
+                        if (!values.zone) {
+                            const detectedZone = address.city || address.town || address.village || address.suburb || address.municipality
+                            if (detectedZone) {
+                                // We update the variable that will be used to construct venueData
+                                // Note: we can't easily update 'values' here without re-parsing, but we can update the object we send
+                                values.zone = detectedZone
+                            }
+                        }
                     }
                 } catch (e) {
                     console.error("Region detection failed", e)
@@ -291,13 +301,22 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 fullAddress = `${zone}, ${city}, ${country}`
             }
 
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`)
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1&addressdetails=1`)
             const data = await response.json()
 
             if (data && data.length > 0) {
-                const { lat, lon } = data[0]
+                const { lat, lon, address } = data[0]
                 form.setValue("coordinates.lat", parseFloat(lat))
                 form.setValue("coordinates.lng", parseFloat(lon))
+
+                // Auto-fill zone if present in response
+                if (address) {
+                    const detectedZone = address.city || address.town || address.village || address.suburb || address.municipality
+                    if (detectedZone) {
+                        form.setValue("zone", detectedZone)
+                    }
+                }
+
                 toast({
                     title: "Ubicación encontrada",
                     description: `Coordenadas establecidas en ${lat}, ${lon}`,

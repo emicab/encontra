@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 // Create a single supabase client for interaction with your database
 
 type Props = {
-    params: Promise<{ region: string; slug: string }>
+    params: Promise<{ region: string; city: string; slug: string }>
 }
 
 
