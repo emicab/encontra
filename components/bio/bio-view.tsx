@@ -164,7 +164,16 @@ export function BioView({ venue, products, region, city }: BioViewProps) {
             )}
 
             {/* 4. Footer */}
-            <footer className="py-6 text-center border-t border-gray-100 bg-white mt-auto">
+            <footer className="py-6 text-center border-t border-gray-100 bg-white mt-auto space-y-3">
+                <div className="flex items-center justify-center gap-4 text-xs font-medium text-gray-500">
+                    <Link href="/sumate" className="hover:text-black hover:underline transition-colors">
+                        Sumá tu Negocio
+                    </Link>
+                    <span>•</span>
+                    <Link href="/admin" className="hover:text-black hover:underline transition-colors">
+                        Ingreso Socios
+                    </Link>
+                </div>
                 <Link href="/" className="inline-flex items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity">
                     <span className="text-xs font-medium text-gray-900">Encontrá</span>
                     <span className="text-[10px] text-gray-500">Bio Link</span>

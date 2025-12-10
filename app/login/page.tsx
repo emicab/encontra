@@ -127,10 +127,18 @@ export default function LoginPage() {
                         </Button>
                     </form>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    <p className="text-xs text-muted-foreground">
-                        ¿Olvidaste tu contraseña? Contactá a soporte.
+                <CardFooter className="flex flex-col gap-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                        ¿No tenés cuenta?{" "}
+                        <a href="/sumate" className="text-primary font-semibold hover:underline">
+                            Sumá tu Negocio
+                        </a>
                     </p>
+                    <div className="flex flex-col gap-2 text-xs">
+                        <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                            ← Volver al inicio
+                        </a>
+                    </div>
                 </CardFooter>
             </Card>
         </div>
