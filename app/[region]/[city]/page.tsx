@@ -91,6 +91,16 @@ export default function CityPage({ params }: Props) {
                     )
                 }
 
+                // Sort by priority
+                mappedVenues.sort((a, b) => {
+                    const getPriority = (plan?: string) => {
+                        if (plan === 'premium') return 3
+                        if (plan === 'basic') return 2
+                        return 1
+                    }
+                    return getPriority(b.subscriptionPlan) - getPriority(a.subscriptionPlan)
+                })
+
                 setVenues(mappedVenues)
 
                 // Filter coupons for these venues

@@ -46,5 +46,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         console.error('Error generating venue sitemap:', error)
     }
 
-    return [...routes, ...regionRoutes, ...venueRoutes]
+    // Bio routes
+    let bioRoutes: MetadataRoute.Sitemap = []
+
+    try {
+        const { data: venues } = await supabase
+            .from('venues')
+            .select('slug, updated_at')
+
+        if (venues) {
+            bioRoutes = venues.map((venue) => ({
+                url: `${baseUrl}/bio/${venue.slug}`,
+                lastModified: venue.updated_at || new Date().toISOString(),
+                changeFrequency: 'weekly' as const,
+                priority: 0.7,
+            }))
+        }
+    } catch (error) {
+        console.error('Error generating bio sitemap:', error)
+    }
+
+    return [...routes, ...regionRoutes, ...venueRoutes, ...bioRoutes]
 }

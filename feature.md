@@ -6,6 +6,19 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.8.0` - Experiencia Móvil y Priorización
+*   **Prioridad de Negocio Full (Premium)**:
+    *   **Algoritmo de Ordenamiento**: Los locales con plan "Negocio Full" aparecen ahora **primeros** en todos los listados (Inicio, Región y Ciudad), garantizando la visibilidad prometida.
+    *   Orden de prioridad: Premium > Emprendedor > Vecino.
+*   **Rediseño de Tarjetas de Local (UI)**:
+    *   **Estética Compacta**: Nuevo formato visual que maximiza la información en menos espacio (pantallas de 16:9).
+    *   **Botón Flotante de Acción**: Acceso directo a WhatsApp ubicado estratégicamente en la parte inferior de la tarjeta ("mitad adentro") para evitar toques accidentales y mejorar la conversión.
+    *   **Layout Optimizado**: Fusión de ubicación y horario en una sola línea informativa.
+*   **Navegación Móvil Mejorada**:
+    *   **Header de 2 Filas**: Reestructuración completa de la cabecera en móviles para garantizar que el botón "Sumate" y el menú sean siempre accesibles.
+    *   **Búsqueda Dedicada**: Barra de búsqueda reubicada en una segunda línea para mayor comodidad táctil.
+    *   **Locaciones Largas**: Manejo inteligente de nombres de ciudad largos con truncamiento visual para mantener la estética.
+
 ### `v1.7.0` - Bio Inteligente (Smart Link-in-Bio)
 *   **Funcionalidad Estrella**:
     *   **Página `/bio`**: Nueva vista ultra-simplificada para usar como enlace en redes sociales (Instagram/TikTok).

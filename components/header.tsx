@@ -123,20 +123,26 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 <Search className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground flex items-center">
-                  {t.appName}
-                  {displayLocation && <span className="font-normal mx-1">en</span>}
-                  <span className={displayLocation ? "text-primary border-b border-primary/20 border-dashed" : ""}>
-                    {displayLocation || ""}
+                <h1 className="text-lg font-bold text-foreground flex flex-col sm:flex-row sm:items-center items-start leading-none sm:leading-normal">
+                  <span>
+                    <span className="hidden xs:inline">{t.appName}</span>
+                    <span className="visible xs:hidden">Encontrá</span>
                   </span>
-                  <ChevronDown className="h-4 w-4 ml-1 text-muted-foreground" />
+
+                  <div className="flex items-center text-xs sm:text-lg sm:font-bold font-normal text-muted-foreground sm:text-foreground mt-0.5 sm:mt-0">
+                    {displayLocation && <span className="mr-1 sm:mx-1 whitespace-nowrap">en</span>}
+                    <span className={`truncate max-w-[140px] sm:max-w-[300px] block ${displayLocation ? "text-primary border-b border-primary/20 border-dashed" : ""}`}>
+                      {displayLocation || ""}
+                    </span>
+                    <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 text-muted-foreground shrink-0" />
+                  </div>
                 </h1>
                 <p className="hidden text-xs text-muted-foreground sm:block">{t.tagline}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-1 max-w-md mx-4">
+          <div className="hidden sm:flex flex-1 max-w-md mx-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -150,7 +156,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button asChild variant="default" size="sm" className="hidden sm:flex">
+            <Button asChild variant="default" size="sm">
               <Link href="/sumate">
                 Sumate
               </Link>
@@ -186,6 +192,20 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                 </Link>
               </Button>
             )}
+          </div>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <div className="mt-3 sm:hidden">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t.search}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-9 bg-secondary/50"
+            />
           </div>
         </div>
       </div>

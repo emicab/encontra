@@ -62,7 +62,7 @@ export default function Home() {
             address: v.address,
             coordinates: v.coordinates,
             whatsapp: v.whatsapp,
-            subscriptionPlan: v.subscription_plan,
+            subscriptionPlan: v.subscription_plan as any,
             subscriptionStatus: v.subscription_status,
             venueType: v.venue_type,
             locationMode: v.location_mode,
@@ -73,10 +73,28 @@ export default function Home() {
             serviceArrangement: v.service_arrangement,
             regionCode: v.region_code,
           }))
+
+          // Sort by subscription plan priority: premium > basic > others
+          mappedVenues.sort((a, b) => {
+            const getPriority = (plan?: string) => {
+              if (plan === 'premium') return 3
+              if (plan === 'basic') return 2
+              return 1
+            }
+            return getPriority(b.subscriptionPlan) - getPriority(a.subscriptionPlan)
+          })
+
           setVenues(mappedVenues)
         } else {
           // Show all mock venues
-          setVenues(mockVenues)
+          setVenues(mockVenues.sort((a, b) => {
+            const getPriority = (plan?: string) => {
+              if (plan === 'premium') return 3
+              if (plan === 'basic') return 2
+              return 1
+            }
+            return getPriority(b.subscriptionPlan) - getPriority(a.subscriptionPlan)
+          }))
         }
 
         if (couponsData && couponsData.length > 0) {
