@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -25,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { submitApplication } from "@/lib/actions/jobs"
 import { toast } from "sonner"
-import { Loader2, UploadCloud, FileText } from "lucide-react"
+import { Loader2, UploadCloud, FileText, CheckCircle2 } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import Turnstile from "react-turnstile"
 
@@ -99,10 +100,19 @@ export function ApplicationForm({ jobId, employerEmail, jobTitle }: ApplicationF
     )
 }
 
+
+// Import CheckCircle2 at the top in existing imports
+import { Loader2, UploadCloud, FileText, CheckCircle2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+
+// ... (props interface remains same)
+
 function ApplicationFormContent({ jobId, employerEmail, jobTitle, onSuccess }: ApplicationFormProps & { onSuccess: () => void }) {
     const [loading, setLoading] = useState(false)
+    const [success, setSuccess] = useState(false) // New success state
     const [file, setFile] = useState<File | null>(null)
     const [token, setToken] = useState("")
+    const router = useRouter()
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -125,18 +135,56 @@ function ApplicationFormContent({ jobId, employerEmail, jobTitle, onSuccess }: A
         formData.append("employerEmail", employerEmail)
         formData.append("jobTitle", jobTitle)
         formData.append("turnstileToken", token)
-        // File is already in formData because of input type="file" name="cv", but we validated it state-side
 
-        const result = await submitApplication(formData)
+        try {
+            const result = await submitApplication(formData)
 
-        setLoading(false)
-
-        if (result.success) {
-            toast.success("¡Postulación enviada con éxito!")
-            onSuccess()
-        } else {
-            toast.error(result.error || "Hubo un error al enviar tu postulación. Intentá nuevamente.")
+            if (result.success) {
+                // Show success screen instead of closing immediately
+                setSuccess(true)
+            } else {
+                toast.error(result.error || "Hubo un error al enviar tu postulación. Intentá nuevamente.")
+            }
+        } catch (error) {
+            console.error("Error submitting application:", error)
+            toast.error("Error de conexión. Por favor intentá nuevamente.")
+        } finally {
+            setLoading(false)
         }
+    }
+
+    if (success) {
+        return (
+            <div className="flex flex-col items-center justify-center py-8 text-center animate-in fade-in zoom-in duration-300">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">
+                    <CheckCircle2 size={32} />
+                </div>
+                <h3 className="text-xl font-bold mb-2">¡Postulación Enviada!</h3>
+                <p className="text-gray-500 mb-8 max-w-[280px]">
+                    Hemos enviado tu CV correctamente. La empresa se pondrá en contacto si tu perfil avanza.
+                </p>
+
+                <div className="flex flex-col gap-3 w-full">
+                    <Button
+                        onClick={() => onSuccess()}
+                        className="w-full bg-black text-white hover:bg-gray-800"
+                    >
+                        Ver más empleos
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            router.push('/')
+                            // We don't necessarily need to close modal if we navigate away, but cleaner if we do.
+                            // But navigation might unmount anyway.
+                        }}
+                        className="w-full"
+                    >
+                        Explorar locales
+                    </Button>
+                </div>
+            </div>
+        )
     }
 
     return (

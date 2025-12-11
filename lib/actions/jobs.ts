@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
+import { Buffer } from 'node:buffer';
 
 // Initialize Resend with API Key from env
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -168,11 +169,20 @@ export async function submitApplication(formData: FormData) {
     }
 
     // 2. Prepare Attachment
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    console.log(`[JobApplication] Processing CV: ${file.name} (${file.size} bytes)`);
 
     try {
-        const { data, error } = await resend.emails.send({
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        console.log(`[JobApplication] Sending email via Resend to ${employerEmail}...`);
+
+        // Create a timeout promise
+        const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Email sending timed out after 15s')), 15000)
+        );
+
+        const emailPromise = resend.emails.send({
             from: 'Encontrá | Bolsa de Trabajo <trabajo@encontra.com.ar>',
             to: [employerEmail],
             replyTo: email,
@@ -257,9 +267,12 @@ export async function submitApplication(formData: FormData) {
             ]
         });
 
+        // Race between email send and timeout
+        const { data, error } = await Promise.race([emailPromise, timeout]) as any;
+
         if (error) {
             console.error("Resend error:", error);
-            return { success: false, error: error.message };
+            return { success: false, error: 'Error enviando email: ' + error.message };
         }
 
         // Optional: Increment stats in DB here if desired, but we keep it stateless for now as requested.

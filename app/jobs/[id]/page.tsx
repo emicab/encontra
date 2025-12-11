@@ -47,8 +47,60 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     // Check if we have a valid contact email to receive applications
     const canApply = !!job.contact_email;
 
+    // structured data for Google Jobs
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'JobPosting',
+        title: job.title,
+        description: typeof job.description === 'string'
+            ? job.description
+            : JSON.stringify(job.description).replace(/[\{\}"]/g, ''),
+        identifier: {
+            '@type': 'PropertyValue',
+            name: safeRender(job.venues?.name) || job.company_name,
+            value: job.id,
+        },
+        datePosted: job.created_at,
+        validThrough: new Date(new Date(job.created_at).setMonth(new Date(job.created_at).getMonth() + 3)).toISOString(), // Approx 3 months validity
+        employmentType: job.job_type.toUpperCase(),
+        hiringOrganization: {
+            '@type': 'Organization',
+            name: safeRender(job.venues?.name) || job.company_name,
+            logo: job.venues?.image || job.company_logo,
+            sameAs: job.venues?.website ? `https://${job.venues.website}` : undefined
+        },
+        jobLocation: {
+            '@type': 'Place',
+            address: {
+                '@type': 'PostalAddress',
+                streetAddress: safeRender(job.venues?.address) || 'Remoto',
+                addressLocality: safeRender(job.venues?.city) || 'Tierra del Fuego',
+                addressRegion: 'Tierra del Fuego',
+                addressCountry: 'AR'
+            }
+        },
+        baseSalary: (job.salary_min || job.salary_max) ? {
+            '@type': 'MonetaryAmount',
+            currency: job.currency || 'ARS',
+            value: {
+                '@type': 'QuantitativeValue',
+                minValue: job.salary_min,
+                maxValue: job.salary_max,
+                unitText: 'MONTH'
+            }
+        } : undefined
+    };
+
+    if (job.location_type === 'remote') {
+        jsonLd.jobLocationType = 'TELECOMMUTE';
+    }
+
     return (
         <div className="min-h-screen bg-gray-50/50 pb-24 md:pb-12">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             {/* Navigation Header */}
             <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100">
                 <div className="container mx-auto px-4 h-14 flex items-center justify-between max-w-3xl">
@@ -69,7 +121,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             <main className="container mx-auto px-4 py-8 max-w-3xl">
                 {/* Unified Card Module */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-
                     {/* 1. Header Section */}
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-white text-center">
                         <div className="w-20 h-20 mx-auto bg-white rounded-xl border border-gray-100 flex items-center justify-center p-2 shadow-sm mb-4">

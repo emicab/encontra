@@ -66,5 +66,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         console.error('Error generating bio sitemap:', error)
     }
 
-    return [...routes, ...regionRoutes, ...venueRoutes, ...bioRoutes]
+    // Jobs routes
+    let jobRoutes: MetadataRoute.Sitemap = []
+
+    try {
+        const { data: jobs } = await supabase
+            .from('jobs')
+            .select('id, created_at')
+            .eq('is_active', true)
+
+        if (jobs) {
+            jobRoutes = jobs.map((job) => ({
+                url: `${baseUrl}/jobs/${job.id}`,
+                lastModified: job.created_at || new Date().toISOString(),
+                changeFrequency: 'daily' as const,
+                priority: 0.9,
+            }))
+        }
+    } catch (error) {
+        console.error('Error generating job sitemap:', error)
+    }
+
+    // Static jobs list
+    const staticJobRoutes = [
+        {
+            url: `${baseUrl}/jobs`,
+            lastModified: new Date().toISOString(),
+            changeFrequency: 'hourly' as const,
+            priority: 1,
+        }
+    ]
+
+    return [...routes, ...regionRoutes, ...venueRoutes, ...bioRoutes, ...jobRoutes, ...staticJobRoutes]
 }
