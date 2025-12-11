@@ -79,7 +79,13 @@ export function JobsTable({ jobs, venueId }: JobsTableProps) {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {job.venues?.name || job.company_name || "-"}
+                                        {(() => {
+                                            const vName = job.venues?.name;
+                                            if (typeof vName === 'object' && vName !== null) {
+                                                return (vName as any).es || (vName as any).en || "-";
+                                            }
+                                            return vName || job.company_name || "-";
+                                        })()}
                                     </TableCell>
                                     <TableCell>{job.job_type.replace('_', ' ')}</TableCell>
                                     <TableCell>{job.location_type}</TableCell>

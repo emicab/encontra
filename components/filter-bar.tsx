@@ -14,7 +14,7 @@ interface FilterBarProps {
 
 export function FilterBar({ showOpenOnly, onToggleOpenOnly, selectedCategory, onSelectCategory, categories }: FilterBarProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 py-4">
+    <div className="flex w-full overflow-x-auto sm:overflow-x-visible flex-nowrap sm:flex-wrap items-center gap-2 py-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
       <Button variant={showOpenOnly ? "default" : "outline"} size="sm" onClick={onToggleOpenOnly} className="gap-1">
         <Filter className="h-3 w-3" />
         {t.openNow}

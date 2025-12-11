@@ -110,7 +110,7 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
                             <FormItem>
                                 <FormLabel>Título del Puesto</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Ej. Mozo de Salón" {...field} />
+                                    <Input placeholder="Ej. Mozo de Salón" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -130,7 +130,7 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
                                     <FormItem>
                                         <FormLabel>Nombre de Empresa</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ej. Hotel Fueguino" {...field} />
+                                            <Input placeholder="Ej. Hotel Fueguino" {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -228,7 +228,7 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
                                 <FormItem>
                                     <FormLabel>Salario Min (Opcional)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" {...field} />
+                                        <Input type="number" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -241,7 +241,7 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
                                 <FormItem>
                                     <FormLabel>Salario Max (Opcional)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" {...field} />
+                                        <Input type="number" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -256,7 +256,7 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
                             <FormItem>
                                 <FormLabel>Email de contacto (Para recibir CVs)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="rrhh@empresa.com" {...field} />
+                                    <Input placeholder="rrhh@empresa.com" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

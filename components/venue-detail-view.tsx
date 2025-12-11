@@ -102,6 +102,23 @@ export function VenueDetailView({ venue, products, coupons }: VenueDetailViewPro
     const showContactActions = features.whatsapp
     const isVerified = features.verified
 
+    const getWebsiteUrl = (url: string) => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return `https://${url}`;
+    }
+
+    const getSocialUrl = (base: string, input: string) => {
+        if (!input) return '';
+        // If it looks like a URL (contains http or common social domains), treat as full URL
+        if (input.startsWith('http') || input.includes('instagram.com') || input.includes('facebook.com')) {
+            return getWebsiteUrl(input);
+        }
+        // Clean handle (remove @ and leading slashes)
+        const handle = input.replace(/^@/, '').replace(/^\//, '');
+        return `${base}/${handle}`;
+    }
+
     return (
         <div className="min-h-screen bg-background pb-20">
             <Header
@@ -316,17 +333,17 @@ export function VenueDetailView({ venue, products, coupons }: VenueDetailViewPro
                                 {showSocials && (
                                     <div className="flex justify-center gap-2">
                                         {venue.website && (
-                                            <Button variant="ghost" size="icon" onClick={() => window.open(`https://${venue.website}`, "_blank")} title="Website">
+                                            <Button variant="ghost" size="icon" onClick={() => window.open(getWebsiteUrl(venue.website || ''), "_blank")} title="Website">
                                                 <Globe className="h-5 w-5" />
                                             </Button>
                                         )}
                                         {venue.instagram && (
-                                            <Button variant="ghost" size="icon" onClick={() => window.open(`https://instagram.com/${venue.instagram}`, "_blank")} title="Instagram">
+                                            <Button variant="ghost" size="icon" onClick={() => window.open(getSocialUrl('https://instagram.com', venue.instagram || ''), "_blank")} title="Instagram">
                                                 <Instagram className="h-5 w-5" />
                                             </Button>
                                         )}
                                         {venue.facebook && (
-                                            <Button variant="ghost" size="icon" onClick={() => window.open(`https://facebook.com/${venue.facebook}`, "_blank")} title="Facebook">
+                                            <Button variant="ghost" size="icon" onClick={() => window.open(getSocialUrl('https://facebook.com', venue.facebook || ''), "_blank")} title="Facebook">
                                                 <Facebook className="h-5 w-5" />
                                             </Button>
                                         )}

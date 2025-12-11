@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MapPin, Search, User, LogOut, LayoutDashboard, Store, ChevronDown, ChevronLeft } from "lucide-react"
+import { MapPin, Search, User, LogOut, LayoutDashboard, Store, ChevronDown, ChevronLeft, Briefcase } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -156,6 +156,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Desktop Jobs Link */}
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href={
                 citySlug && regionCode ? `/${regionCode}/${citySlug}/jobs` :
@@ -163,6 +164,17 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                     "/jobs"
               }>
                 Bolsa de Trabajo
+              </Link>
+            </Button>
+
+            {/* Mobile Jobs Icon */}
+            <Button asChild variant="ghost" size="icon" className="sm:hidden">
+              <Link href={
+                citySlug && regionCode ? `/${regionCode}/${citySlug}/jobs` :
+                  regionCode ? `/${regionCode}/jobs` :
+                    "/jobs"
+              } title="Bolsa de Trabajo">
+                <Briefcase className="h-5 w-5" />
               </Link>
             </Button>
 

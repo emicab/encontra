@@ -246,10 +246,11 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                     ? `${values.street || ''}, ${values.city}, Argentina`
                     : `${values.zone || ''}, ${values.city}, Argentina`,
                 coordinates: values.coordinates,
-                whatsapp: values.whatsapp,
+                coordinates: values.coordinates,
+                whatsapp: values.whatsapp.replace(/\D/g, ''), // Keep only numbers
                 website: values.website,
-                instagram: values.instagram,
-                facebook: values.facebook,
+                instagram: values.instagram ? values.instagram.replace(/^@/, '').replace(/.*\//, '') : '', // Extract handle
+                facebook: values.facebook ? values.facebook.replace(/.*\//, '') : '', // Extract handle/page id
                 phone: values.phone,
                 open_time: values.openTime,
                 close_time: values.closeTime,

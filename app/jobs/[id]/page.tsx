@@ -8,6 +8,13 @@ import { ApplicationForm } from '@/components/jobs/application-form';
 
 export const dynamic = 'force-dynamic';
 
+function safeRender(value: any): string {
+    if (typeof value === 'object' && value !== null) {
+        return value.es || value.en || "";
+    }
+    return value || "";
+}
+
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const job = await getJob(id);
@@ -69,7 +76,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                             {(job.venues?.image || job.company_logo) ? (
                                 <img
                                     src={job.venues?.image || job.company_logo}
-                                    alt={job.venues?.name || job.company_name}
+                                    alt={safeRender(job.venues?.name) || job.company_name}
                                     className="w-full h-full object-contain rounded-lg"
                                 />
                             ) : (
@@ -80,7 +87,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                             {job.title}
                         </h1>
                         <p className="text-lg text-gray-500 font-medium">
-                            {job.venues?.name || job.company_name}
+                            {safeRender(job.venues?.name) || job.company_name}
                         </p>
                     </div>
 
@@ -173,8 +180,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         };
     }
 
-    const title = `${job.title} en ${job.venues?.name || job.company_name}`;
-    const description = `Postulate para ${job.title}. ${job.job_type} en ${job.venues?.address || 'Tierra del Fuego'}.`;
+    const title = `${job.title} en ${safeRender(job.venues?.name) || job.company_name}`;
+    const description = `Postulate para ${job.title}. ${job.job_type} en ${safeRender(job.venues?.address) || 'Tierra del Fuego'}.`;
 
     return {
         title: `${title} | Bolsa de Trabajo`,
