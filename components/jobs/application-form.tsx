@@ -73,25 +73,27 @@ export function ApplicationForm({ jobId, employerEmail, jobTitle }: ApplicationF
                 </Button>
             </DrawerTrigger>
             <DrawerContent>
-                <DrawerHeader className="text-left">
-                    <DrawerTitle>Postulación a {jobTitle}</DrawerTitle>
-                    <DrawerDescription>
-                        Completá tus datos para enviar tu CV.
-                    </DrawerDescription>
-                </DrawerHeader>
-                <div className="px-4">
-                    <ApplicationFormContent
-                        jobId={jobId}
-                        employerEmail={employerEmail}
-                        jobTitle={jobTitle}
-                        onSuccess={() => setOpen(false)}
-                    />
+                <div className="mx-auto w-full max-w-sm max-h-[85vh] overflow-y-auto">
+                    <DrawerHeader className="text-left">
+                        <DrawerTitle>Postulación a {jobTitle}</DrawerTitle>
+                        <DrawerDescription>
+                            Completá tus datos para enviar tu CV.
+                        </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="px-4">
+                        <ApplicationFormContent
+                            jobId={jobId}
+                            employerEmail={employerEmail}
+                            jobTitle={jobTitle}
+                            onSuccess={() => setOpen(false)}
+                        />
+                    </div>
+                    <DrawerFooter className="pt-2">
+                        <DrawerClose asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DrawerClose>
+                    </DrawerFooter>
                 </div>
-                <DrawerFooter className="pt-2">
-                    <DrawerClose asChild>
-                        <Button variant="outline">Cancelar</Button>
-                    </DrawerClose>
-                </DrawerFooter>
             </DrawerContent>
         </Drawer>
     )
