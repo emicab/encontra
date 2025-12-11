@@ -75,7 +75,7 @@ export function VenueList({ venues, coupons, regionCode, cityName }: VenueListPr
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredVenues.map((venue) => (
-                            <VenueCard key={venue.id} venue={venue} />
+                            <VenueCard key={venue.id} venue={venue} activeJobsCount={venue.activeJobsCount} />
                         ))}
                     </div>
                     {filteredVenues.length === 0 && (

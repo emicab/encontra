@@ -69,12 +69,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   async function fetchCities(region: string) {
     const { data } = await supabase
       .from('venues')
-      .select('zone')
+      .select('city')
       .eq('region_code', region)
 
     if (data) {
-      // Extract unique zones, filter nulls/empties, sort
-      const uniqueCities = Array.from(new Set(data.map(v => v.zone).filter(Boolean))) as string[]
+      // Extract unique cities, filter nulls/empties, sort
+      const uniqueCities = Array.from(new Set(data.map(v => v.city).filter(Boolean))) as string[]
       setCities(uniqueCities.sort())
     }
   }
@@ -156,6 +156,16 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href={
+                citySlug && regionCode ? `/${regionCode}/${citySlug}/jobs` :
+                  regionCode ? `/${regionCode}/jobs` :
+                    "/jobs"
+              }>
+                Bolsa de Trabajo
+              </Link>
+            </Button>
+
             <Button asChild variant="default" size="sm">
               <Link href="/sumate">
                 Sumate

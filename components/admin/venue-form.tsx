@@ -40,7 +40,8 @@ const formSchema = z.object({
     locationMode: z.enum(["address", "zone"]),
     street: z.string().optional(),
     city: z.string().min(1, "La ciudad es obligatoria"),
-    country: z.string().min(1, "El país es obligatorio"),
+    country: z.string().default("Argentina"),
+    regionCode: z.string().min(1, "La provincia es obligatoria"),
     zone: z.string().optional(),
     coordinates: z.object({
         lat: z.coerce.number(),
@@ -134,12 +135,13 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 description: typeof initialData.description === 'object' ? (initialData.description as any).es || (initialData.description as any).en || "" : initialData.description,
                 schedule: initialData.schedule || defaultSchedule,
                 // Fix enum mismatch: DB 'exact_address' -> Schema 'address'
-                locationMode: (initialData.locationMode === 'exact_address' ? 'address' : initialData.locationMode) as "address" | "zone",
+                locationMode: ((initialData.locationMode as string) === 'exact_address' ? 'address' : initialData.locationMode) as "address" | "zone",
                 // Fix coordinates being null
                 coordinates: initialData.coordinates || { lat: 0, lng: 0 },
                 street: initialData.address || "", // Fallback address to street if not parsed
                 city: initialData.city || "",
-                country: "Argentina", // Default
+                country: "Argentina",
+                regionCode: initialData.regionCode || "tdf",
                 zone: initialData.zone || "",
                 whatsapp: initialData.whatsapp || "",
                 website: initialData.website || "",
@@ -160,7 +162,8 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 locationMode: "address",
                 street: "",
                 city: "",
-                country: "",
+                country: "Argentina",
+                regionCode: "tdf",
                 zone: "",
                 coordinates: { lat: 0, lng: 0 },
                 whatsapp: "",
@@ -202,11 +205,9 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
         }
         setIsPending(true)
         try {
-            let regionCode = initialData?.regionCode || 'tdf';
-
             const fullAddress = values.locationMode === 'address'
-                ? `${values.street}, ${values.city}, ${values.country}`
-                : `${values.zone}, ${values.city}, ${values.country}`
+                ? `${values.street || ''}, ${values.city}, Argentina`
+                : `${values.zone || ''}, ${values.city}, Argentina`
 
             if (fullAddress) {
                 try {
@@ -214,11 +215,6 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                     const results = await response.json()
                     if (results && results.length > 0) {
                         const address = results[0].address
-                        const state = address.state || address.province || ""
-                        const match = Object.entries(REGIONS).find(([_, name]) => {
-                            return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
-                        })
-                        if (match) regionCode = match[0]
 
                         // Auto-detect zone if not manually specified
                         if (!values.zone) {
@@ -236,17 +232,19 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
             }
 
             const venueData = {
-                region_code: regionCode,
+                region_code: values.regionCode,
                 name: { es: values.name }, // Wrap in JSONB
                 slug: values.slug,
                 description: { es: values.description }, // Wrap in JSONB
                 category: values.category === "new_custom" ? values.customCategory : values.category,
                 venue_type: values.venueType,
-                location_mode: values.locationMode,
-                zone: values.zone,
+                location_mode: values.locationMode === 'address' ? 'exact_address' : values.locationMode,
+                // Ensure zone matches city in address mode so it appears in the city listing
+                zone: values.locationMode === 'address' ? values.city : values.zone,
+                city: values.city,
                 address: values.locationMode === 'address'
-                    ? `${values.street || ''}, ${values.city}, ${values.country}` // Safe fallback
-                    : `${values.zone || ''}, ${values.city}, ${values.country}`, // Safe fallback
+                    ? `${values.street || ''}, ${values.city}, Argentina`
+                    : `${values.zone || ''}, ${values.city}, Argentina`,
                 coordinates: values.coordinates,
                 whatsapp: values.whatsapp,
                 website: values.website,
@@ -270,13 +268,18 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 is_new: true // Default
             }
 
+            console.log("Submitting venue data:", venueData)
+
             if (initialData) {
                 const { error } = await supabase
                     .from("venues")
                     .update(venueData)
                     .eq("id", initialData.id)
 
-                if (error) throw error
+                if (error) {
+                    console.error("Supabase Update Error:", error)
+                    throw error
+                }
 
                 toast({
                     title: "Éxito",
@@ -287,7 +290,10 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                     .from("venues")
                     .insert([venueData])
 
-                if (error) throw error
+                if (error) {
+                    console.error("Supabase Insert Error:", error)
+                    throw error
+                }
 
                 toast({
                     title: "Éxito",
@@ -298,7 +304,10 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
             router.push("/admin/venues")
             router.refresh()
         } catch (error: any) {
-            console.error("Error saving venue:", JSON.stringify(error, null, 2))
+            console.error("Error saving venue full object:", error)
+            console.error("Error saving venue message:", error?.message)
+            console.error("Error saving venue details:", error?.details)
+            console.error("Error saving venue hint:", error?.hint)
 
             let errorMessage = "Ocurrió un error al guardar el local."
 
@@ -313,6 +322,8 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 }
             } else if (error?.message) {
                 errorMessage = error.message
+            } else if (typeof error === 'string') {
+                errorMessage = error
             }
 
             toast({
@@ -330,12 +341,12 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
         const street = form.getValues("street")
         const zone = form.getValues("zone")
         const city = form.getValues("city")
-        const country = form.getValues("country")
+        const country = "Argentina"
 
-        if (!street || !city || !country) {
+        if (!street || !city) {
             toast({
                 title: "Dirección incompleta",
-                description: "Por favor ingrese calle, ciudad y país.",
+                description: "Por favor ingrese calle y ciudad.",
                 variant: "destructive",
             })
             return
@@ -346,17 +357,17 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
             // Use 'q' parameter for better free-form search including numbers
             let fullAddress = ""
             if (mode === 'address') {
-                if (!street || !city || !country) {
-                    toast({ title: "Dirección incompleta", description: "Por favor ingrese calle, ciudad y país.", variant: "destructive" })
+                if (!street || !city) {
+                    toast({ title: "Dirección incompleta", description: "Por favor ingrese calle y ciudad.", variant: "destructive" })
                     return
                 }
-                fullAddress = `${street}, ${city}, ${country}`
+                fullAddress = `${street}, ${city}, Argentina`
             } else {
-                if (!zone || !city || !country) {
-                    toast({ title: "Zona incompleta", description: "Por favor ingrese zona, ciudad y país.", variant: "destructive" })
+                if (!zone || !city) {
+                    toast({ title: "Zona incompleta", description: "Por favor ingrese zona y ciudad.", variant: "destructive" })
                     return
                 }
-                fullAddress = `${zone}, ${city}, ${country}`
+                fullAddress = `${zone}, ${city}, Argentina`
             }
 
             const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1&addressdetails=1`)
@@ -621,13 +632,24 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                                         />
                                         <FormField
                                             control={form.control}
-                                            name="country"
+                                            name="regionCode"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>País</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Argentina" {...field} />
-                                                    </FormControl>
+                                                    <FormLabel>Provincia</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Seleccione provincia" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Object.entries(REGIONS).map(([code, name]) => (
+                                                                <SelectItem key={code} value={code}>
+                                                                    {name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}

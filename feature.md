@@ -1,10 +1,29 @@
-# Encontrá - La Guía de Locales y Servicios `v1.6.0`
+# Encontrá - La Guía de Locales y Servicios `v1.9.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.9.0` - Bolsa de Trabajo y Empleos
+*   **Nueva Sección: Bolsa de Trabajo**:
+    *   **Listados Públicos**: Visualización de ofertas laborales activas con filtrado por Ciudad y Región.
+    *   **Postulación Directa**: Envío de CV (PDF) directamente al email del empleador sin intermediarios.
+    *   **Seguridad**: Protección Anti-Spam (Cloudflare Turnstile) en formularios de contacto.
+*   **Gestión de Empleos**:
+    *   **Multi-Origen**: Soporte para empleos vinculados a "Locales" existentes o "Independientes" (con nombre y logo custom).
+    *   **Límites por Plan**: Cupos de publicación activos según el plan del local (Gratis: 0, Emprendedor: 1, Full: 10).
+    *   **Badge de Personal**: Indicador visual "Busca Personal" en las tarjetas de locales que están contratando.
+*   **Navegación Mejorada**:
+    *   **Routing Inteligente**: `/region/city/jobs` para exploración local precisa.
+    *   **Lógica de Ciudad**: Agrupación correcta de barrios (zonas) bajo su ciudad principal en los listados.
+
+### `v1.8.1` - Precisión Geográfica y Administración
+*   **Gestión de Ubicación Robusta**:
+    *   **Selector de Provincia Manual**: Nuevo control en el panel de administración que permite forzar la provincia del local, eliminando la dependencia de la detección automática (geocoding) que fallaba en ciertas zonas.
+    *   **Sincronización de Zona**: Corrección crítica donde locales con "Dirección Exacta" no aparecían en los listados de ciudad. Ahora la zona se sincroniza estrictamente con la ciudad seleccionada.
+    *   **Simplificación**: Eliminación del campo "País" (Argentina por defecto) para agilizar la carga de datos.
 
 ### `v1.8.0` - Experiencia Móvil y Priorización
 *   **Prioridad de Negocio Full (Premium)**:

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase"
 import { notFound, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function EditVenuePage() {
     const params = useParams()
@@ -99,9 +100,20 @@ export default function EditVenuePage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">Editar Local</h2>
-                <p className="text-muted-foreground">Actualizar información del local.</p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Editar Local</h2>
+                    <p className="text-muted-foreground">Actualizar información del local.</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="secondary" className="bg-slate-100 cursor-default">Información</Button>
+                    <a href={`/admin/venues/${params.id}/products`}>
+                        <Button variant="ghost">Productos</Button>
+                    </a>
+                    <a href={`/admin/venues/${params.id}/jobs`}>
+                        <Button variant="ghost">Empleos</Button>
+                    </a>
+                </div>
             </div>
             <VenueForm initialData={venue} isAdmin={isAdmin} />
         </div>

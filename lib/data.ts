@@ -37,6 +37,7 @@ export interface Venue {
   regionCode?: string
   ownerId?: string | null
   city?: string
+  activeJobsCount?: number
 }
 
 export type TimeRange = { start: string; end: string }

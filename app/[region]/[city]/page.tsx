@@ -35,8 +35,16 @@ export default function CityPage({ params }: Props) {
             const citySlug = resolvedParams!.city
 
             try {
-                // Fetch venues for the region
-                let query = supabase.from("venues").select("*").eq("region_code", regionCode)
+                // Fetch venues for the region including active jobs
+                // We use jobs(id) instead of count because filtering count in select string is tricky with Supabase JS client
+                // and we only need to know if there are > 0 active jobs.
+                // Limiting to id and applying filter is efficient.
+                let query = supabase
+                    .from("venues")
+                    .select("*, jobs(id)")
+                    .eq("region_code", regionCode)
+                    .eq("jobs.is_active", true) // This filters the JOINED jobs, ensuring we only get active ones
+
                 const { data: venuesData, error: venuesError } = await query
 
                 const { data: couponsData, error: couponsError } = await supabase.from("coupons").select("*")
@@ -76,7 +84,9 @@ export default function CityPage({ params }: Props) {
                         servicePickup: v.service_pickup,
                         serviceArrangement: v.service_arrangement,
                         regionCode: v.region_code,
-                    })) as Venue[]
+                        // Count active jobs (since we filtered the relation by is_active=true, the array length is the count of active jobs)
+                        activeJobsCount: v.jobs?.length || 0
+                    })) as Venue[] & { activeJobsCount: number }[]
 
                     // Filter by city/zone
                     mappedVenues = allVenues.filter(v =>
@@ -148,7 +158,7 @@ export default function CityPage({ params }: Props) {
             venues={venues}
             coupons={coupons}
             regionCode={regionCode || ""}
-            cityName={resolvedParams.city} // We might want to pretty print this (title case)
+            cityName={resolvedParams.city}
         />
     )
 }

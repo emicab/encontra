@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Star, Clock, MapPin, MessageCircle, Crown } from "lucide-react"
+import { Star, Clock, MapPin, MessageCircle, Crown, Briefcase } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,9 +13,10 @@ import { useRegion } from "@/components/providers/region-provider"
 
 interface VenueCardProps {
   venue: Venue
+  activeJobsCount?: number
 }
 
-export function VenueCard({ venue }: VenueCardProps) {
+export function VenueCard({ venue, activeJobsCount = 0 }: VenueCardProps) {
   const regionCode = useRegion()
   const features = getVenueFeatures(venue)
   const isPremium = venue.subscriptionPlan === "premium"
@@ -77,6 +78,14 @@ export function VenueCard({ venue }: VenueCardProps) {
               >
                 {isOpen ? t.open : t.closed}
               </Badge>
+            </div>
+            <div className="absolute bottom-2 right-2 flex gap-2">
+              {activeJobsCount > 0 && (
+                <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1 px-2 py-0.5 animate-pulse shadow-sm">
+                  <Briefcase className="h-3 w-3" />
+                  Busca Personal
+                </Badge>
+              )}
             </div>
           </div>
 
