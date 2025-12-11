@@ -101,9 +101,6 @@ export function ApplicationForm({ jobId, employerEmail, jobTitle }: ApplicationF
 }
 
 
-// Import CheckCircle2 at the top in existing imports
-import { Loader2, UploadCloud, FileText, CheckCircle2 } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 // ... (props interface remains same)
 

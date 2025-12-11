@@ -12,10 +12,20 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Edit, Trash2, Plus, ArrowUpRight } from "lucide-react"
 import Link from "next/link"
-import { Job } from "@/lib/actions/jobs"
-import { deleteJob } from "@/lib/actions/jobs"
+import { Job, deleteJob } from "@/lib/actions/jobs"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useState } from "react"
 
 interface JobsTableProps {
     jobs: Job[]
@@ -24,31 +34,31 @@ interface JobsTableProps {
 
 export function JobsTable({ jobs, venueId }: JobsTableProps) {
     const router = useRouter()
+    const [jobToDelete, setJobToDelete] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
-    async function handleDelete(id: string) {
-        if (confirm("¿Estás seguro de que querés eliminar este empleo?")) {
-            const res = await deleteJob(id);
+    async function handleDelete() {
+        if (!jobToDelete) return
+
+        setIsDeleting(true)
+        try {
+            const res = await deleteJob(jobToDelete);
             if (res.success) {
                 toast.success("Empleo eliminado");
                 router.refresh();
             } else {
-                toast.error(res.error);
+                toast.error(res.error || "No se pudo eliminar el empleo");
             }
+        } catch (error) {
+            toast.error("Ocurrió un error al eliminar");
+        } finally {
+            setIsDeleting(false)
+            setJobToDelete(null)
         }
     }
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Empleos Publicados ({jobs.length})</h2>
-                <Link href={venueId ? `/admin/venues/${venueId}/jobs/new` : "/admin/jobs/new"}>
-                    <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nuevo Empleo
-                    </Button>
-                </Link>
-            </div>
-
             <div className="rounded-md border bg-white">
                 <Table>
                     <TableHeader>
@@ -109,7 +119,12 @@ export function JobsTable({ jobs, venueId }: JobsTableProps) {
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
                                             </Link>
-                                            <Button size="icon" variant="destructive" onClick={() => handleDelete(job.id)} title="Eliminar">
+                                            <Button
+                                                size="icon"
+                                                variant="destructive"
+                                                onClick={() => setJobToDelete(job.id)}
+                                                title="Eliminar"
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -120,6 +135,30 @@ export function JobsTable({ jobs, venueId }: JobsTableProps) {
                     </TableBody>
                 </Table>
             </div>
+
+            <AlertDialog open={!!jobToDelete} onOpenChange={(open) => !open && setJobToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. El empleo será eliminado permanentemente de la base de datos.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault()
+                                handleDelete()
+                            }}
+                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Eliminando..." : "Eliminar"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }
