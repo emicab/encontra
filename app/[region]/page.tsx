@@ -5,6 +5,7 @@ import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon }
 import { supabase } from "@/lib/supabase"
 import { useRegion } from "@/components/providers/region-provider"
 import { VenueList } from "@/components/venue-list"
+import { Footer } from "@/components/footer"
 import { getRegionName } from "@/lib/regions"
 
 export default function RegionHome() {
@@ -146,10 +147,13 @@ export default function RegionHome() {
     }
 
     return (
-        <VenueList
-            venues={venues}
-            coupons={coupons}
-            regionCode={regionCode || ""}
-        />
+        <div className="min-h-screen bg-background">
+            <VenueList
+                venues={venues}
+                coupons={coupons}
+                regionCode={regionCode || ""}
+            />
+            <Footer />
+        </div>
     )
 }

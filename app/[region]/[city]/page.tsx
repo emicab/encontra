@@ -5,6 +5,7 @@ import { venues as mockVenues, coupons as mockCoupons, type Venue, type Coupon }
 import { supabase } from "@/lib/supabase"
 import { useRegion } from "@/components/providers/region-provider"
 import { VenueList } from "@/components/venue-list"
+import { Footer } from "@/components/footer"
 import { notFound } from "next/navigation"
 
 // Helper to normalize strings for comparison (remove accents, lowercase)
@@ -154,11 +155,14 @@ export default function CityPage({ params }: Props) {
     // Ideally we would validate if 'city' is a valid zone in the DB, but for now we trust the filter.
 
     return (
-        <VenueList
-            venues={venues}
-            coupons={coupons}
-            regionCode={regionCode || ""}
-            cityName={resolvedParams.city}
-        />
+        <div className="min-h-screen bg-background">
+            <VenueList
+                venues={venues}
+                coupons={coupons}
+                regionCode={regionCode || ""}
+                cityName={resolvedParams.city}
+            />
+            <Footer />
+        </div>
     )
 }

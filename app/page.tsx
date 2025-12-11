@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { FeaturedCarousel } from "@/components/featured-carousel"
 import { CouponCard } from "@/components/coupon-card"
 import { VenueCard } from "@/components/venue-card"
@@ -202,11 +203,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border mt-12 py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          © 2025 {t.appName}. {t.tagline}
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

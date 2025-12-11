@@ -6,6 +6,16 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.9.3` - Legales y Mejoras de Navegación
+*   **Páginas Institucionales**:
+    *   **Términos y Condiciones**: Nueva página `/terms` con marco legal estándar.
+    *   **Preguntas Frecuentes**: Sección `/faq` con acordeón interactivo y detalles de planes/precios.
+*   **Navegación Unificada**:
+    *   **Footer Global**: Implementación de un pie de página consistente en todas las rutas (Home, Región, Ciudad), unificando enlaces institucionales y de negocio ("Sumá tu Negocio").
+    *   **Navegación Fluida**: Incorporación de cabeceras "Sticky" con botón "Volver" en páginas legales para no romper el flujo del usuario.
+*   **Mejoras Admin**:
+    *   **Seguridad en Borrado**: Modal de confirmación (`AlertDialog`) al eliminar empleos para prevenir acciones accidentales.
+
 ### `v1.9.0` - Bolsa de Trabajo y Empleos
 *   **Nueva Sección: Bolsa de Trabajo**:
     *   **Listados Públicos**: Visualización de ofertas laborales activas con filtrado por Ciudad y Región.

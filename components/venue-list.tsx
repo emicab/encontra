@@ -96,21 +96,6 @@ export function VenueList({ venues, coupons, regionCode, cityName }: VenueListPr
                 )}
             </main>
 
-            <footer className="border-t border-border mt-12 py-8 bg-gray-50">
-                <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="text-sm text-muted-foreground">
-                        © 2025 {t.appName}. {t.tagline}
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <a href="/sumate" className="text-sm font-medium text-primary hover:underline">
-                            Sumá tu Negocio
-                        </a>
-                        <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-                            Ingreso Socios
-                        </a>
-                    </div>
-                </div>
-            </footer>
         </div>
     )
 }
