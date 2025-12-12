@@ -21,6 +21,50 @@ import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { REGIONS } from "@/lib/regions";
+import { Bold, List } from "lucide-react"
+
+// Helper Component: Markdown Toolbar
+function MarkdownToolbar({ elementId }: { elementId: string }) {
+    const insertText = (before: string, after: string = "") => {
+        const textarea = document.getElementById(elementId) as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selectedText = text.substring(start, end);
+
+        const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+        nativeInputValueSetter?.call(textarea, newText);
+
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.focus();
+        textarea.setSelectionRange(start + before.length, end + before.length);
+    };
+
+    return (
+        <div className="flex gap-1 mb-1.5 p-1 bg-gray-50 border border-gray-200 rounded-md w-fit">
+            <button
+                type="button"
+                onClick={() => insertText("**", "**")}
+                className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                title="Negrita"
+            >
+                <Bold size={14} />
+            </button>
+            <button
+                type="button"
+                onClick={() => insertText("- ")}
+                className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                title="Lista"
+            >
+                <List size={14} />
+            </button>
+        </div>
+    );
+}
 
 // Common fields
 const commonSchema = {
@@ -327,10 +371,14 @@ export function PublicJobForm() {
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Descripción del Empleo <span className="text-red-500">*</span></FormLabel>
+                                        <div className="flex justify-between items-center">
+                                            <FormLabel>Descripción del Empleo <span className="text-red-500">*</span></FormLabel>
+                                            <MarkdownToolbar elementId="desc-basic" />
+                                        </div>
                                         <FormDescription>Incluí responsabilidades, requisitos y cualquier info relevante.</FormDescription>
                                         <FormControl>
                                             <Textarea
+                                                id="desc-basic"
                                                 placeholder="Estamos buscando..."
                                                 className="min-h-[200px]"
                                                 {...field}
@@ -355,9 +403,12 @@ export function PublicJobForm() {
                                     name="role_description"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Descripción del Rol <span className="text-red-500">*</span></FormLabel>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel>Descripción del Rol <span className="text-red-500">*</span></FormLabel>
+                                                <MarkdownToolbar elementId="desc-role" />
+                                            </div>
                                             <FormControl>
-                                                <Textarea placeholder="Qué va a hacer la persona, sin vueltas..." className="min-h-[100px]" {...field} />
+                                                <Textarea id="desc-role" placeholder="Qué va a hacer la persona, sin vueltas..." className="min-h-[100px]" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -369,10 +420,13 @@ export function PublicJobForm() {
                                     name="responsibilities"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Responsabilidades Principales <span className="text-red-500">*</span></FormLabel>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel>Responsabilidades Principales <span className="text-red-500">*</span></FormLabel>
+                                                <MarkdownToolbar elementId="desc-resp" />
+                                            </div>
                                             <FormDescription>Listá de 3 a 8 items (bullets)</FormDescription>
                                             <FormControl>
-                                                <Textarea placeholder="- Tarea 1&#10;- Tarea 2&#10;- Tarea 3" className="min-h-[100px]" {...field} />
+                                                <Textarea id="desc-resp" placeholder="- Tarea 1&#10;- Tarea 2&#10;- Tarea 3" className="min-h-[100px]" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -403,9 +457,12 @@ export function PublicJobForm() {
                                     name="requirements_min"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Requisitos Mínimos <span className="text-red-500">*</span></FormLabel>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel>Requisitos Mínimos <span className="text-red-500">*</span></FormLabel>
+                                                <MarkdownToolbar elementId="desc-req-min" />
+                                            </div>
                                             <FormControl>
-                                                <Textarea placeholder="Experiencia, habilidades técnicas, idiomas..." {...field} />
+                                                <Textarea id="desc-req-min" placeholder="Experiencia, habilidades técnicas, idiomas..." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -417,9 +474,12 @@ export function PublicJobForm() {
                                     name="requirements_opt"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Requisitos Opcionales (Bonus)</FormLabel>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel>Requisitos Opcionales (Bonus)</FormLabel>
+                                                <MarkdownToolbar elementId="desc-req-opt" />
+                                            </div>
                                             <FormControl>
-                                                <Textarea placeholder="Cosas que suman puntos pero no excluyen..." {...field} />
+                                                <Textarea id="desc-req-opt" placeholder="Cosas que suman puntos pero no excluyen..." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -492,9 +552,12 @@ export function PublicJobForm() {
                                     name="benefits"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Beneficios</FormLabel>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel>Beneficios</FormLabel>
+                                                <MarkdownToolbar elementId="desc-benefits" />
+                                            </div>
                                             <FormControl>
-                                                <Textarea placeholder="Obra social, viáticos, comida, etc." {...field} />
+                                                <Textarea id="desc-benefits" placeholder="Obra social, viáticos, comida, etc." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

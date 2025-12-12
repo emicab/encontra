@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { Buffer } from 'node:buffer';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // Initialize Resend with API Key from env
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -330,8 +331,6 @@ export async function submitApplication(formData: FormData) {
 
 // --- Admin / Owner Actions ---
 
-// --- Admin / Owner Actions ---
-
 export async function getAdminJobs(venueId?: string) {
     // Use Admin Client to view ALL jobs (including inactive/unowned)
     const supabase = createAdminClient();
@@ -585,7 +584,7 @@ export async function deleteJob(id: string) {
     return { success: true };
 }
 
-import { createAdminClient } from '@/lib/supabase/admin';
+
 
 export async function submitJobRequest(data: any) {
     // Use Admin Client to bypass RLS for public submissions

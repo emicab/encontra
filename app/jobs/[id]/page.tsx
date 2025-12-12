@@ -2,7 +2,7 @@ import { getJob } from '@/lib/actions/jobs';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, ArrowLeft, Building2, Globe, Share2 } from 'lucide-react';
+import { MapPin, Clock, ArrowLeft, Building2, Globe, Share2, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { ApplicationForm } from '@/components/jobs/application-form';
 
@@ -13,6 +13,70 @@ function safeRender(value: any): string {
         return value.es || value.en || "";
     }
     return value || "";
+}
+
+const SimpleMarkdown = ({ content }: { content: any }) => {
+    if (!content) return null;
+
+    let text = "";
+    if (typeof content === 'string') {
+        text = content;
+        // Attempt to clean up double-serialized JSON strings or escaped newlines
+        // This fixes the issue where text appears as "line1\nline2"
+        if (text.startsWith('"') && text.endsWith('"')) {
+            try {
+                const parsed = JSON.parse(text);
+                if (typeof parsed === 'string') text = parsed;
+            } catch (e) {
+                // If parsing fails, proceed with raw text but clean escaped newlines manually
+            }
+        }
+        // Ensure literal \n characters are converted to real newlines
+        text = text.replace(/\\n/g, '\n');
+    } else if (typeof content === 'object') {
+        text = JSON.stringify(content, null, 2).replace(/[\{\}"]/g, '');
+    }
+
+    // Split by newlines
+    const lines = text.split('\n');
+
+    return (
+        <div className="text-gray-600 leading-relaxed space-y-1">
+            {lines.map((line, index) => {
+                const trimmed = line.trim();
+                // Spacer for empty lines
+                if (!trimmed) return <div key={index} className="h-2" />;
+
+                // Check for list item
+                const isList = trimmed.startsWith('- ') || trimmed.startsWith('• ');
+                const displayLine = isList ? trimmed.substring(2) : line;
+
+                // Parse bold: **text**
+                const parts = displayLine.split(/(\*\*.*?\*\*)/g);
+                const children = parts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                        return <strong key={i} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+                    }
+                    return <span key={i}>{part}</span>;
+                });
+
+                if (isList) {
+                    return (
+                        <div key={index} className="flex gap-2 ml-4">
+                            <span className="text-gray-400 select-none">•</span>
+                            <span className="flex-1">{children}</span>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={index} className="min-h-[1.5em]">
+                        {children}
+                    </div>
+                )
+            })}
+        </div>
+    )
 }
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -73,8 +137,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             '@type': 'Place',
             address: {
                 '@type': 'PostalAddress',
-                streetAddress: safeRender(job.venues?.address) || 'Remoto',
-                addressLocality: safeRender(job.venues?.city) || 'Tierra del Fuego',
+                streetAddress: safeRender(job.venues?.address) || (job.city || 'Remoto'),
+                addressLocality: safeRender(job.venues?.city) || (job.city || 'Tierra del Fuego'),
                 addressRegion: 'Tierra del Fuego',
                 addressCountry: 'AR'
             }
@@ -123,7 +187,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* 1. Header Section */}
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-white text-center">
-                        <div className="w-20 h-20 mx-auto bg-white rounded-xl border border-gray-100 flex items-center justify-center p-2 shadow-sm mb-4">
+                        <div className="w-20 h-20 mx-auto bg-white rounded-xl border border-gray-100 flex items-center justify-center p-2 shadow-sm mb-4 relative overflow-hidden">
                             {(job.venues?.image || job.company_logo) ? (
                                 <img
                                     src={job.venues?.image || job.company_logo}
@@ -155,7 +219,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                             <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Ubicación</span>
                             <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700">
                                 <Globe size={14} className="text-green-500" />
-                                {job.location_type === 'onsite' ? 'Presencial' : 'Remoto'}
+                                {job.location_type === 'onsite' ? 'Presencial' : (job.location_type === 'hybrid' ? 'Híbrido' : 'Remoto')}
                             </div>
                         </div>
                         <div className="p-4 text-center col-span-2 sm:col-span-1 border-t sm:border-t-0 border-gray-100">
@@ -172,12 +236,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                         <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-2 inline-block">
                             Sobre esta oportunidad
                         </h3>
-                        <div className="prose prose-gray prose-lg max-w-none text-gray-600 leading-relaxed whitespace-pre-line">
-                            {typeof job.description === 'string'
-                                ? job.description
-                                : JSON.stringify(job.description, null, 2).replace(/[\{\}"]/g, '')
-                            }
-                        </div>
+                        {/* Using SimpleMarkdown for formatted view */}
+                        <SimpleMarkdown content={job.description} />
                     </div>
 
                     {/* 4. Desktop Action Footer */}

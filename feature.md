@@ -1,4 +1,4 @@
-# Encontrá - La Guía de Locales y Servicios `v1.10.0`
+# Encontrá - La Guía de Locales y Servicios `v1.10.1`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
@@ -6,6 +6,7 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.10.1` - FIX ERRORES
 ### `v1.10.0` - Bio Institucional y Gestión Avanzada de Empleos
 *   **Bio Encontrá**:
     *   **Landing Institucional**: Nueva vista `/bio-encontra` diseñada como "Link in Bio" oficial de la plataforma.
