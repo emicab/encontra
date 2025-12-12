@@ -1,10 +1,24 @@
-# Encontrá - La Guía de Locales y Servicios `v1.9.0`
+# Encontrá - La Guía de Locales y Servicios `v1.10.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.10.0` - Bio Institucional y Gestión Avanzada de Empleos
+*   **Bio Encontrá**:
+    *   **Landing Institucional**: Nueva vista `/bio-encontra` diseñada como "Link in Bio" oficial de la plataforma.
+    *   **Acceso Centralizado**: Botones rápidos para "Ir al Sitio", "Sumar Negocio", "Acceso Admin" y "Publicar Empleo".
+    *   **Social & Share**: Integración directa con redes de Encontrá y botón nativo de compartir.
+*   **Publicación de Empleos (Self-Service)**:
+    *   **Formulario Público**: Nueva página `/publicar-empleo` para que empresas y reclutadores envíen ofertas sin registro previo.
+    *   **Modos de Carga**: Opción "Simple" (descripción libre) o "Detallada" (roles, requisitos, beneficios, logo, etc.).
+    *   **Geolocalización**: Selección de Provincia y Ciudad obligatoria para mejorar el filtrado.
+*   **Dashboard de Empleos (Admin)**:
+    *   **Gestión por Pestañas**: Separación visual entre "Solicitudes Pendientes" y "Empleos Activos".
+    *   **Indicadores de Estado**: Badges con contadores para identificar rápidamente nuevas solicitudes que requieren aprobación.
+    *   **Inbox UI**: Diseño estilo bandeja de entrada para moderar eficazmente las postulaciones entrantes.
 
 ### `v1.9.3` - Legales y Mejoras de Navegación
 *   **Páginas Institucionales**:
