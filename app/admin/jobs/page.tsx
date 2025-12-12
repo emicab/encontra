@@ -1,5 +1,5 @@
 import { getAdminJobs } from "@/lib/actions/jobs"
-import { JobsTable } from "@/components/admin/jobs-table"
+import { AdminJobsDashboard } from "@/components/admin/jobs-dashboard"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -23,7 +23,7 @@ export default async function AdminJobsPage() {
                     </Link>
                 </Button>
             </div>
-            <JobsTable jobs={jobs} />
+            <AdminJobsDashboard jobs={jobs} />
         </div>
     )
 }

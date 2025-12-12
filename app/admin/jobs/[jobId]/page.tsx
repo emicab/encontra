@@ -1,5 +1,5 @@
 import { JobForm } from "@/components/admin/job-form"
-import { getJob } from "@/lib/actions/jobs"
+import { getAdminJob } from "@/lib/actions/jobs"
 import { notFound } from "next/navigation"
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 
 export default async function EditJobPage({ params }: Props) {
     const { jobId } = await params
-    const job = await getJob(jobId)
+    const job = await getAdminJob(jobId)
 
     if (!job) {
         notFound()

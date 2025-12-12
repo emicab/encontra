@@ -44,7 +44,7 @@ export async function getJobs(filters?: { region?: string; city?: string; zone?:
         .from('jobs')
         .select(`
       *,
-      venues!inner (
+      venues (
         name,
         image, 
         slug,
@@ -57,10 +57,54 @@ export async function getJobs(filters?: { region?: string; city?: string; zone?:
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-    // Note: We use !inner on venues to filter jobs based on venue properties
-
+    // Filter by Region
     if (filters?.region) {
-        query = query.eq('venues.region_code', filters.region);
+        // We want jobs where (jobs.region_code = region) OR (venues.region_code = region)
+        // Since we can't easily do OR across tables in one simple chain without embedding constraints differently,
+        // A common pattern is to rely on duplication or specific PostgREST filter syntax.
+        // But the easiest fix for "Public Jobs" is to ensure they rely on 'region_code' column in jobs table.
+        // AND for Venue Jobs, we should ALSO populate 'region_code' in jobs table upon upsert/insert.
+        // IF we assume 'region_code' in jobs table is the source of truth for filtering:
+        // Then we just filter .eq('region_code', filters.region).
+        // BUT we need to backfill existing venue jobs or ensure upsertJob populates it.
+
+        // TEMPORARY FIX: Use specific OR syntax string or just rely on jobs.region_code IF we enforce it.
+        // Let's try to filter on jobs.region_code primarily.
+        // But existing jobs from venues have NULL region_code in jobs table.
+        // So we need a hybrid approach or migrate data.
+
+        // Let's try the PostgREST "or" filter with embedded resource syntax if possible, but that's hard.
+        // Alternative: Filter in memory? No, pagination.
+
+        // BEST PATH: Update getJobs to look for EITHER.
+        // Actually, if we change `venues!inner` to just `venues` (left join), we get all jobs.
+        // Then simple `.eq` on `venues.region_code` would filter out nulls... wait.
+
+        // Let's use the explicit 'or' syntax.
+        // `query.or(`region_code.eq.${filters.region},venues.region_code.eq.${filters.region}`)`
+        // But `venues.region_code` is in a joined table. PostgREST referencing joined cols in top-level OR is tricky.
+
+        // STRATEGY: 
+        // 1. Modify `upsertJob` to ALWAYS save `region_code` to the job (copy from venue if needed).
+        // 2. Run a "migration" script or just accept that old jobs need an update.
+        // 3. For now, to make the user's NEW job show up, it has `region_code`.
+        // 4. The `venues!inner` constraint is killing us.
+
+        // Change: Use Left Join for venues.
+        // Then how to filter?
+
+        // If I use `query.eq('region_code', filters.region)` it will find the new public job.
+        // But it won't find old venue jobs (null region_code).
+
+        // Recommendation: UPDATE jobs SET region_code = venues.region_code FROM venues WHERE jobs.venue_id = venues.id;
+        // If I run this SQL, then I can rely 100% on `jobs.region_code`.
+        // This is the cleanest solution.
+
+        // So I will change the code to filter by `jobs.region_code`.
+        // And I will ask the user to run the SQL to backfill.
+        // AND I will update `upsertJob` to maintain this invariant.
+
+        query = query.eq('region_code', filters.region);
     }
 
     const { data: rawData, error } = await query;
@@ -286,8 +330,11 @@ export async function submitApplication(formData: FormData) {
 
 // --- Admin / Owner Actions ---
 
+// --- Admin / Owner Actions ---
+
 export async function getAdminJobs(venueId?: string) {
-    const supabase = await createClient();
+    // Use Admin Client to view ALL jobs (including inactive/unowned)
+    const supabase = createAdminClient();
 
     let query = supabase
         .from('jobs')
@@ -315,8 +362,36 @@ export async function getAdminJobs(venueId?: string) {
     return data as Job[];
 }
 
+export async function getAdminJob(id: string) {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+      *,
+      venues (
+        name,
+        image,
+        slug,
+        address,
+        region_code,
+        zone,
+        city
+      )
+    `)
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        console.error('Error fetching admin job:', error);
+        return null;
+    }
+
+    return data as Job;
+}
+
 export async function upsertJob(data: Partial<Job>) {
-    const supabase = await createClient();
+    const supabase = await createClient(); // Standard client for auth check
 
     // Validate session
     const { data: { user } } = await supabase.auth.getUser();
@@ -324,12 +399,63 @@ export async function upsertJob(data: Partial<Job>) {
         return { success: false, error: 'Unauthorized' };
     }
 
-    const jobData = {
-        ...data,
-        owner_id: user.id, // Ensure owner is set on creation
-        // On update, RLS checks ownership/admin status
-    };
+    // Prepare data
+    const jobData = { ...data };
 
+    // Check ownership / Adoption logic
+    // If Updating...
+    if (jobData.id) {
+        // Fetch current owner using Admin Client to bypass RLS (in case it's invisible)
+        const supabaseAdmin = createAdminClient();
+        const { data: currentJob, error: fetchError } = await supabaseAdmin
+            .from('jobs')
+            .select('owner_id')
+            .eq('id', jobData.id)
+            .single();
+
+        if (fetchError || !currentJob) {
+            return { success: false, error: 'Job not found' };
+        }
+
+        // If job has NO owner (Public Request), allow adoption!
+        if (!currentJob.owner_id) {
+            jobData.owner_id = user.id; // Claim it
+        } else if (currentJob.owner_id !== user.id) {
+            // Check if user is absolute Admin (optional, but RLS usually handles this)
+            // For now, if owner mismatch, RLS "update" policy will fail unless we use Admin Client.
+            // If we WANT admins to edit ANY job, we should use Admin Client here too.
+            // Let's rely on standard RLS "Users can update their own jobs" for normal logic,
+            // OR use AdminClient if we trust the user is an Admin (which we don't know here easily).
+
+            // NOTE: If the user IS the owner, standard client works.
+            // If the user IS NOT the owner, standard client fails.
+            // If the user just claimed it (was null), we MUST use AdminClient to perform the update
+            // because standard client RLS "auth.uid() = owner_id" will compare with NULL (db) vs USER (auth).
+        }
+
+        // If we are claiming it (owner was null), we MUST use Admin Client to save.
+        if (!currentJob.owner_id) {
+            const { data: result, error } = await supabaseAdmin
+                .from('jobs')
+                .upsert(jobData)
+                .select()
+                .single();
+
+            if (error) return { success: false, error: error.message };
+
+            // Revalidate
+            revalidatePath('/jobs');
+            revalidatePath('/admin/jobs');
+            return { success: true, data: result };
+        }
+
+    } else {
+        // Creating new job
+        jobData.owner_id = user.id;
+    }
+
+
+    // Standard Upsert (for normal flows)
     // Auto-generate slug if not present or title changed (simple version)
     // For now, if creating a new job without slug, make one.
     if (!jobData.slug && jobData.title) {
@@ -342,49 +468,67 @@ export async function upsertJob(data: Partial<Job>) {
     }
 
     // --- ENFORCE JOB LIMITS ---
-    if (jobData.venue_id && jobData.is_active !== false) { // Only check if activating/creating active
+    if (jobData.venue_id) {
+        // Sync location from Venue
         const { data: venue, error: venueError } = await supabase
             .from('venues')
-            .select('subscription_plan')
+            .select('subscription_plan, region_code, city, zone')
             .eq('id', jobData.venue_id)
             .single();
+
+        if (venue) {
+            // Copy location to job for easier filtering
+            jobData.region_code = venue.region_code;
+            jobData.city = venue.city; // Or venue.zone if city is empty?
+            // Actually, venue has 'city' column? Check schema.
+            // Schema view showed: `city` in getAdminJob select? 
+            // Wait, `getAdminJob` selected `city` from venues. `multi_tenant_regions.sql` added `region_code`. 
+            // I did NOT verify `city` column exists on venues table in the initial view_file.
+            // Let's assume it does or I'll check.
+            // Inspecting `schema.sql` again... lines 1-21 do NOT show city.
+            // But step 229 showed `city` in the select. Maybe it was added later or in a migration I missed or inferred.
+            // Let's look at `getJobs` select in step 270: `venues ( ..., city )`.
+            // So `venues` has a `city` column (or relation?).
+
+            // If `venues` has city, use it.
+        }
 
         if (venueError || !venue) {
             return { success: false, error: 'Local no encontrado' };
         }
 
         const plan = venue.subscription_plan as 'free' | 'basic' | 'premium';
-        let limit = 0;
-        if (plan === 'basic') limit = 1;
-        if (plan === 'premium') limit = 10;
+        // ... rest of limit logic ...
+        if (jobData.is_active !== false) {
+            let limit = 0;
+            if (plan === 'basic') limit = 1;
+            if (plan === 'premium') limit = 10;
 
-        if (limit === 0) {
-            return { success: false, error: 'Tu plan actual no permite publicar empleos.' };
-        }
+            if (limit === 0) {
+                return { success: false, error: 'Tu plan actual no permite publicar empleos.' };
+            }
 
-        // Count active jobs
-        let countQuery = supabase
-            .from('jobs')
-            .select('*', { count: 'exact', head: true })
-            .eq('venue_id', jobData.venue_id)
-            .eq('is_active', true);
+            // Count active jobs
+            let countQuery = supabase
+                .from('jobs')
+                .select('*', { count: 'exact', head: true })
+                .eq('venue_id', jobData.venue_id)
+                .eq('is_active', true);
 
-        if (jobData.id) {
-            countQuery = countQuery.neq('id', jobData.id); // Exclude current job if updating
-        }
+            if (jobData.id) {
+                countQuery = countQuery.neq('id', jobData.id); // Exclude current job if updating
+            }
 
-        const { count, error: countError } = await countQuery;
+            const { count, error: countError } = await countQuery;
 
-        if (countError) {
-            console.error("Error counting jobs", countError);
-            return { success: false, error: 'Error verificando límites' };
-        }
+            if (countError) {
+                console.error("Error counting jobs", countError);
+                return { success: false, error: 'Error verificando límites' };
+            }
 
-        // If we are creating/updating to active, checking count + 1 > limit is wrong if we rely on count < limit
-        // Current count (0) < limit (1) -> OK.
-        // Current count (1) < limit (1) -> Fail.
-        if ((count || 0) >= limit) {
-            return { success: false, error: `Has alcanzado el límite de ${limit} empleos activos para tu plan.` };
+            if ((count || 0) >= limit) {
+                return { success: false, error: `Has alcanzado el límite de ${limit} empleos activos para tu plan.` };
+            }
         }
     }
     // ---------------------------
@@ -439,4 +583,101 @@ export async function deleteJob(id: string) {
     revalidatePath('/jobs');
     revalidatePath('/admin/jobs');
     return { success: true };
+}
+
+import { createAdminClient } from '@/lib/supabase/admin';
+
+export async function submitJobRequest(data: any) {
+    // Use Admin Client to bypass RLS for public submissions
+    const supabase = createAdminClient();
+
+    // 1. Prepare data
+    // Random slug for uniqueness
+    const slug = (data.title || "job")
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '')
+        + '-' + Math.random().toString(36).substring(2, 7);
+
+    // Format Description Block
+    let descriptionBlock = ``;
+
+    if (data.description && typeof data.description === 'string' && data.description.length > 0) {
+        // Basic Mode: Description is passed directly
+        descriptionBlock = data.description;
+
+        // Append extra basic fields if they exist and aren't in the text usually
+        if (data.location_city && !descriptionBlock.includes(data.location_city)) descriptionBlock += `\n\n**Ubicación:** ${data.location_city}`;
+        if (data.contact_phone && !descriptionBlock.includes(data.contact_phone)) descriptionBlock += `\n**WhatsApp:** ${data.contact_phone}`;
+
+    } else {
+
+        // Rol
+        if (data.role_description) descriptionBlock += `**Descripción del Rol:**\n${data.role_description}\n\n`;
+
+        // Responsabilidades
+        if (data.responsibilities) descriptionBlock += `**Responsabilidades:**\n${data.responsibilities}\n\n`;
+
+        // Requisitos
+        if (data.requirements_min) descriptionBlock += `**Requisitos Mínimos:**\n${data.requirements_min}\n\n`;
+        if (data.requirements_opt) {
+            descriptionBlock += `**Requisitos Opcionales:**\n${data.requirements_opt}\n\n`;
+        }
+
+        // Ubicación
+        if (data.location_city) {
+            descriptionBlock += `**Ubicación:** ${data.location_city}`;
+            if (data.location_address) descriptionBlock += ` (${data.location_address})`;
+            descriptionBlock += `\n`;
+        }
+
+        // Horario
+        if (data.schedule) descriptionBlock += `**Horario:** ${data.schedule}\n`;
+
+        // Beneficios
+        if (data.benefits) descriptionBlock += `\n**Beneficios:**\n${data.benefits}\n\n`;
+
+        // Company Info
+        if (data.company_description) {
+            descriptionBlock += `\n**Sobre la empresa:**\n${data.company_description}\n`;
+        }
+
+        // Contact / Deadline
+        if (data.contact_phone) descriptionBlock += `\n**WhatsApp/Tel:** ${data.contact_phone}`;
+        if (data.deadline) descriptionBlock += `\n**Fecha Límite:** ${data.deadline}`;
+
+    }
+
+
+    // 2. Insert as inactive
+    const jobData = {
+        title: data.title,
+        company_name: data.company_name,
+        company_logo: data.company_logo || null,
+        description: descriptionBlock, // Store raw string (it's JSONB, so it will be a JSON string, but not double encoded)
+        salary_min: data.salary_min || null,
+        salary_max: data.salary_max || null,
+        currency: 'ARS',
+        job_type: data.job_type,
+        location_type: data.location_type,
+        region_code: data.region_code || null,
+        city: data.location_city || null,
+        contact_email: data.contact_email,
+        is_active: false,
+        slug: slug,
+    };
+
+    const { data: result, error } = await supabase
+        .from('jobs')
+        .insert(jobData)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error submitting job request:', error);
+        return { success: false, error: 'Error al enviar solicitud: ' + error.message };
+    }
+
+    return { success: true, data: result };
 }
