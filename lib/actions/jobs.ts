@@ -295,7 +295,7 @@ export async function submitApplication(formData: FormData) {
                     </p>
                     
                     <div style="margin-top: 16px;">
-                        <a href="https://encontra.com.ar/sumate" style="color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500;">Publicar empleo</a>
+                        <a href="https://encontra.com.ar/publicar-empleo" style="color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500;">Publicar empleo</a>
                         <span style="color: #cbd5e1; margin: 0 8px;">•</span>
                         <a href="https://encontra.com.ar" style="color: #64748b; text-decoration: none; font-size: 13px;">Visitar sitio</a>
                     </div>
