@@ -1,10 +1,30 @@
-# Encontrá - La Guía de Locales y Servicios `v1.10.2`
+# Encontrá - La Guía de Locales y Servicios `v1.12.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.12.0` - Sistema de Analíticas y Tracking
+*   **Inteligencia de Datos**:
+    *   **Dashboard Analítico**: Nueva sección "Analíticas" en el panel de administración con métricas clave.
+    *   **Tracking Híbrido**: Rastreo de escaneos QR (`?source=qr-card`) y vistas de página (`page_view`).
+    *   **Ranking de Popularidad**: Tablas de "Top Locales" y "Top Ciudades" para identificar tendencias de tráfico.
+    *   **Historial Detallado**: Registro cronológico de cada interacción (scan, visit) con fuente y ruta.
+*   **Tracking Universal**:
+    *   Implementación de `PageViewTracker` en todas las páginas clave (Región, Ciudad, Local) para medir el impacto real de cada sección de la plataforma.
+    *   Deduplicación automática de eventos en desarrollo (Strict Mode safe).
+
+### `v1.11.0` - Landing de Venta: "Propuesta"
+*   **Marketing & Conversión**:
+    *   **Landing Page Dedicada**: Nueva ruta `/propuesta` diseñada como "Carta de Venta" para comerciantes.
+    *   **Diseño Premium**: Estética diferenciada (Dark Mode, Glassmorphism) enfocada en transmitir alta calidad y profesionalismo.
+    *   **Contenido Persuasivo**: Secciones visuales de "Problema vs Solución", "Flujo de RRHH" y Comparativa de Planes con precios actualizados.
+    *   **Call-To-Action (CTA)**: Integración directa con flujos de registro (`/sumate`) y contacto vía WhatsApp.
+*   **Assets Visuales**:
+    *   Generación de mockups 3D personalizados mostrando la app en uso real.
+    *   Gráficos explicativos para simplificar la propuesta de valor.
 
 ### `v1.10.2` - UX de Empleos y Refactorización
 *   **Bio Encontrá**:
