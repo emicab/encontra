@@ -24,6 +24,7 @@ export type Job = {
     job_type: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
     location_type: 'onsite' | 'remote' | 'hybrid';
     contact_email: string;
+    contact_phone?: string;
     is_active: boolean;
     application_count: number;
     slug?: string;
@@ -35,7 +36,10 @@ export type Job = {
         region_code?: string;
         zone?: string;
         city?: string;
+        website?: string;
     };
+    city?: string; // Cache/Denormalized
+    region_code?: string; // Cache/Denormalized
 };
 
 export async function getJobs(filters?: { region?: string; city?: string; zone?: string }) {
@@ -52,7 +56,8 @@ export async function getJobs(filters?: { region?: string; city?: string; zone?:
         address,
         region_code,
         zone,
-        city
+        city,
+        website
       )
     `)
         .eq('is_active', true)
@@ -130,15 +135,14 @@ export async function getJobs(filters?: { region?: string; city?: string; zone?:
         const target = normalize(filterTerm);
 
         data = data.filter(job => {
-            if (!job.venues) return false;
+            // Check Job City (Denormalized/Public)
+            if (job.city && normalize(job.city) === target) return true;
 
-            // Check City first (primary grouping)
-            if (job.venues.city && normalize(job.venues.city) === target) return true;
-
-            // Fallback: Check Zone (for legacy or specific neighborhood matching if needed)
-            // If the user navigated to /ushuaia, and a venue has zone="Ushuaia" (and maybe empty city?), it should match.
-            // But if venue has zone="Los Fueguinos" and city="Ushuaia", it matches via the city check above.
-            if (job.venues.zone && normalize(job.venues.zone) === target) return true;
+            // Check Venue City/Zone (if venue exists)
+            if (job.venues) {
+                if (job.venues.city && normalize(job.venues.city) === target) return true;
+                if (job.venues.zone && normalize(job.venues.zone) === target) return true;
+            }
 
             return false;
         });
@@ -607,8 +611,12 @@ export async function submitJobRequest(data: any) {
         descriptionBlock = data.description;
 
         // Append extra basic fields if they exist and aren't in the text usually
-        if (data.location_city && !descriptionBlock.includes(data.location_city)) descriptionBlock += `\n\n**Ubicación:** ${data.location_city}`;
-        if (data.contact_phone && !descriptionBlock.includes(data.contact_phone)) descriptionBlock += `\n**WhatsApp:** ${data.contact_phone}`;
+        if (data.location_city && !descriptionBlock.includes(data.location_city)) {
+            // No appending city to description anymore
+        }
+        if (data.contact_phone && !descriptionBlock.includes(data.contact_phone)) {
+            // No appending phone to description anymore
+        }
 
     } else {
 
@@ -625,11 +633,12 @@ export async function submitJobRequest(data: any) {
         }
 
         // Ubicación
-        if (data.location_city) {
-            descriptionBlock += `**Ubicación:** ${data.location_city}`;
-            if (data.location_address) descriptionBlock += ` (${data.location_address})`;
-            descriptionBlock += `\n`;
-        }
+        // Moved to metadata grid
+        // if (data.location_city) {
+        //    descriptionBlock += `**Ubicación:** ${data.location_city}`;
+        //    if (data.location_address) descriptionBlock += ` (${data.location_address})`;
+        //    descriptionBlock += `\n`;
+        // }
 
         // Horario
         if (data.schedule) descriptionBlock += `**Horario:** ${data.schedule}\n`;
@@ -643,7 +652,8 @@ export async function submitJobRequest(data: any) {
         }
 
         // Contact / Deadline
-        if (data.contact_phone) descriptionBlock += `\n**WhatsApp/Tel:** ${data.contact_phone}`;
+        // Phone moved to metadata grid
+        // if (data.contact_phone) descriptionBlock += `\n**WhatsApp/Tel:** ${data.contact_phone}`;
         if (data.deadline) descriptionBlock += `\n**Fecha Límite:** ${data.deadline}`;
 
     }
@@ -663,6 +673,7 @@ export async function submitJobRequest(data: any) {
         region_code: data.region_code || null,
         city: data.location_city || null,
         contact_email: data.contact_email,
+        contact_phone: data.contact_phone || null,
         is_active: false,
         slug: slug,
     };

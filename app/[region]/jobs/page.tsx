@@ -139,7 +139,13 @@ export default async function RegionalJobsPage({ params }: Props) {
                                                 <MapPin size={12} className="text-gray-400" />
                                                 {job.location_type === 'remote'
                                                     ? 'Remoto'
-                                                    : (safeRender(job.venues?.address) || safeRender(job.venues?.zone) || regionName || 'Región')}
+                                                    : (() => {
+                                                        const city = safeRender(job.venues?.city) || job.city;
+                                                        const region = regionName;
+                                                        if (city) return `${city}, ${region}`;
+                                                        return safeRender(job.venues?.address) || safeRender(job.venues?.zone) || region || 'Región';
+                                                    })()
+                                                }
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Clock size={12} className="text-gray-400" />

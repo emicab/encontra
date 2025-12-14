@@ -15,12 +15,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { upsertJob } from "@/lib/actions/jobs"
 import { toast } from "sonner"
-import { Loader2, ArrowLeft } from "lucide-react"
+import { Loader2, ArrowLeft, Bold, List } from "lucide-react"
 import { useRouter } from "next/navigation"
 import ImageUpload from "@/components/ui/image-upload"
+import { REGIONS } from "@/lib/regions"
+
+import { CompanyInfoSection, BasicModeFields, AdvancedModeFields } from "@/components/admin/job-form-sections"
+
 
 // Define the schema
 const jobSchema = z.object({
@@ -35,27 +40,43 @@ const jobSchema = z.object({
     location_type: z.enum(['onsite', 'remote', 'hybrid']),
     contact_email: z.string().email("Email inválido"),
     is_active: z.boolean().default(true),
+    city: z.string().min(2, "Ciudad requerida").optional(),
+    region_code: z.string().min(2, "Provincia requerida").optional(),
     venue_id: z.string().optional().nullable(),
+
+    // Advanced fields
+    role_description: z.string().optional(),
+    responsibilities: z.string().optional(),
+    requirements_min: z.string().optional(),
+    requirements_opt: z.string().optional(),
+    schedule: z.string().optional(),
+    company_description: z.string().optional(),
+    location_address: z.string().optional(),
+    benefits: z.string().optional(),
+    contact_phone: z.string().optional(),
+    deadline: z.string().optional(),
 })
 
 interface JobFormProps {
     initialData?: any
     venueId?: string // If creating contextually for a venue
+    onSuccess?: () => void
 }
 
-export function JobForm({ initialData, venueId }: JobFormProps) {
+export function JobForm({ initialData, venueId, onSuccess }: JobFormProps) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
-
-    // Handle JSONB description field if coming from DB
-    const processedInitialData = initialData ? {
-        ...initialData,
-        description: typeof initialData.description === 'string' ? initialData.description : JSON.stringify(initialData.description)
-    } : null;
+    const [mode, setMode] = useState<'basic' | 'advanced'>('basic')
 
     const form = useForm<z.infer<typeof jobSchema>>({
         resolver: zodResolver(jobSchema),
-        defaultValues: processedInitialData || {
+        defaultValues: initialData ? {
+            ...initialData,
+            city: initialData.city || "",
+            region_code: initialData.region_code || "",
+            // Ensure description is string if it comes as JSONB object
+            description: typeof initialData.description === 'object' ? JSON.stringify(initialData.description) : initialData.description,
+        } : {
             title: "",
             company_name: "",
             company_logo: "",
@@ -64,9 +85,22 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
             salary_max: 0,
             job_type: "full_time",
             location_type: "onsite",
+            city: "",
+            region_code: "",
             contact_email: "",
             is_active: true,
             venue_id: venueId || null,
+            // Advanced defaults
+            role_description: "",
+            responsibilities: "",
+            requirements_min: "",
+            requirements_opt: "",
+            schedule: "",
+            company_description: "",
+            location_address: "",
+            benefits: "",
+            contact_phone: "",
+            deadline: "",
         },
     })
 
@@ -76,7 +110,13 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
             // If venue_id is provided, prioritize it
             if (venueId) values.venue_id = venueId;
 
-            const result = await upsertJob(values);
+            // Fix strict type mismatch for null vs undefined
+            const payload = {
+                ...values,
+                venue_id: values.venue_id || undefined
+            };
+
+            const result = await upsertJob(payload);
 
             if (result.success) {
                 toast.success("Empleo guardado correctamente");
@@ -102,6 +142,13 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-gray-100">
 
+                <Tabs value={mode} onValueChange={(v) => setMode(v as 'basic' | 'advanced')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="basic">Básico</TabsTrigger>
+                        <TabsTrigger value="advanced">Avanzado</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+
                 <div className="grid gap-6">
                     <FormField
                         control={form.control}
@@ -119,57 +166,18 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
 
                     {/* Show Company fields only if NO venueId */}
                     {!venueId && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg">
-                            <div className="md:col-span-2">
-                                <h4 className="text-sm font-semibold text-gray-500 mb-2">Datos de la Empresa (Si no está asociada a un Local)</h4>
-                            </div>
-                            <FormField
-                                control={form.control}
-                                name="company_name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nombre de Empresa</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Ej. Hotel Fueguino" {...field} value={field.value ?? ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="company_logo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Logo (URL)</FormLabel>
-                                        <FormControl>
-                                            <ImageUpload
-                                                value={field.value ? [field.value] : []}
-                                                onChange={(url) => field.onChange(url)}
-                                                onRemove={() => field.onChange("")}
-                                                disabled={loading}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                        <CompanyInfoSection form={form} loading={loading} />
                     )}
 
-                    <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Descripción</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Responsabilidades, requisitos..." className="min-h-[150px]" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    {/* Description - Basic Mode */}
+                    {mode === 'basic' && (
+                        <BasicModeFields form={form} />
+                    )}
+
+                    {/* Advanced Fields */}
+                    {mode === 'advanced' && (
+                        <AdvancedModeFields form={form} />
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
@@ -249,19 +257,34 @@ export function JobForm({ initialData, venueId }: JobFormProps) {
                         />
                     </div>
 
-                    <FormField
-                        control={form.control}
-                        name="contact_email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email de contacto (Para recibir CVs)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="rrhh@empresa.com" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="contact_email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email de contacto (Para recibir CVs)</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="rrhh@empresa.com" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="contact_phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>WhatsApp / Teléfono (Opcional)</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="+54 9 2901 ..." {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     <FormField
                         control={form.control}

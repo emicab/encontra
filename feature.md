@@ -1,4 +1,4 @@
-# Encontrá - La Guía de Locales y Servicios `v1.10.1`
+# Encontrá - La Guía de Locales y Servicios `v1.10.2`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
@@ -6,6 +6,15 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.10.2` - UX de Empleos y Refactorización
+*   **Bio Encontrá**:
+    *   **Acceso Optimizado**: Reorganización de botones en `/bio-encontra`. Acceso prioritario a "Ver Empleos" y reubicación del "Login Admin" al footer para mejorar la experiencia de usuario final.
+*   **Experiencia de Candidato**:
+    *   **Ubicación Precisa**: Las tarjetas de empleo ahora muestran explícitamente **Ciudad, Provincia** (ej: "Ushuaia, Tierra del Fuego") en lugar de regiones genéricas.
+    *   **Filtrado Híbrido**: Corrección en la lógica de filtrado por URL (`/region/city/jobs`) para incluir correctamente tanto empleos vinculados a locales (Venues) como ofertas públicas (Job Board).
+*   **Calidad de Código y Accesibilidad**:
+    *   **Refactorización Modular**: Desacoplamiento del formulario de carga de empleos (`Admin Job Form`) en componentes reutilizables y extracción de herramientas compartidas (`MarkdownToolbar`).
+    *   **Accesibilidad Móvil**: Corrección de etiquetas de diálogo (`SheetTitle`) en el menú de navegación móvil para cumplir con estándares de lectores de pantalla.
 ### `v1.10.1` - FIX ERRORES
 ### `v1.10.0` - Bio Institucional y Gestión Avanzada de Empleos
 *   **Bio Encontrá**:
