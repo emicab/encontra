@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import ImageUpload from "@/components/ui/image-upload"
+import { MarkdownToolbar } from "@/components/ui/markdown-toolbar"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -30,7 +31,7 @@ const formSchema = z.object({
     // Step 2: Contact & Socials
     ownerName: z.string().min(2, "Tu nombre es requerido"),
     ownerEmail: z.string().email("Ingresá un email válido"),
-    whatsapp: z.string().min(8, "Ingresá un WhatsApp válido"),
+    whatsapp: z.string().optional(),
     instagram: z.string().optional(),
     website: z.string().optional(),
     facebook: z.string().optional(),
@@ -95,7 +96,7 @@ export function SumateForm() {
             fieldsToValidate = ["name", "category", "description"]
             if (category === "other") fieldsToValidate.push("customCategory")
         } else if (step === 2) {
-            fieldsToValidate = ["ownerName", "ownerEmail", "whatsapp"]
+            fieldsToValidate = ["ownerName", "ownerEmail"]
         } else if (step === 3) {
             // Optional images
             fieldsToValidate = []
@@ -116,6 +117,8 @@ export function SumateForm() {
 
     const onSubmit = async (data: FormData) => {
         setIsPending(true)
+        const sanitize = (val?: string | null) => (val && val.trim() !== "" ? val : null)
+
         try {
             let detectedRegion = regionCode || ""
             let detectedZone = ""
@@ -152,20 +155,20 @@ export function SumateForm() {
             const { error } = await supabase.from("venue_requests").insert({
                 name: data.name,
                 category: data.category,
-                custom_category: data.customCategory,
+                custom_category: sanitize(data.customCategory),
                 description: data.description,
-                phone: data.whatsapp, // Using whatsapp as main phone
-                whatsapp: data.whatsapp,
+                phone: sanitize(data.whatsapp), // Using whatsapp as main phone
+                whatsapp: sanitize(data.whatsapp),
                 owner_name: data.ownerName, // Make sure these match DB columns
                 owner_email: data.ownerEmail,
-                instagram: data.instagram,
-                website: data.website,
-                facebook: data.facebook,
-                image: data.image,
-                logo: data.logo,
+                instagram: sanitize(data.instagram),
+                website: sanitize(data.website),
+                facebook: sanitize(data.facebook),
+                image: sanitize(data.image),
+                logo: sanitize(data.logo),
                 location: data.location,
                 location_type: data.locationType,
-                hours: data.hours,
+                hours: sanitize(data.hours),
                 coordinates: { lat, lng },
                 region_code: detectedRegion,
                 zone: detectedZone || data.zone, // Fallback to manual zone if added in future
@@ -296,13 +299,20 @@ export function SumateForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Descripción Breve</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        placeholder="¿Qué hacés? ¿Qué vendés? ¿Qué te hace especial?"
-                                                        className="resize-none"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
+                                                <div className="space-y-2">
+                                                    <MarkdownToolbar elementId="description" />
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Podés usar la barra de herramientas para resaltar texto o crear listas.
+                                                    </p>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            id="description"
+                                                            placeholder="¿Qué hacés? ¿Qué vendés? ¿Qué te hace especial?"
+                                                            className="resize-none"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
