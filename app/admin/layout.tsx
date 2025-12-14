@@ -3,7 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LayoutDashboard, Store, Ticket, Settings, LogOut, Menu, Inbox, Flag, Briefcase } from "lucide-react"
+import { LayoutDashboard, Store, Ticket, Settings, LogOut, Menu, Inbox, Flag, Briefcase, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { supabase } from "@/lib/supabase"
@@ -98,6 +98,13 @@ export default function AdminLayout({
                     >
                         <Ticket className="h-4 w-4" />
                         Cupones
+                    </Link>
+                    <Link
+                        href="/admin/analytics"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                    >
+                        <BarChart3 className="h-4 w-4" />
+                        Analíticas
                     </Link>
                 </>
             ) : (

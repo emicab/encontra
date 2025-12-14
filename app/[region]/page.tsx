@@ -7,6 +7,7 @@ import { useRegion } from "@/components/providers/region-provider"
 import { VenueList } from "@/components/venue-list"
 import { Footer } from "@/components/footer"
 import { getRegionName } from "@/lib/regions"
+import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 
 export default function RegionHome() {
     const regionCode = useRegion()
@@ -148,6 +149,13 @@ export default function RegionHome() {
 
     return (
         <div className="min-h-screen bg-background">
+            {regionCode && (
+                <PageViewTracker
+                    type="region"
+                    identifier={regionCode}
+                    metadata={{ region: regionCode }}
+                />
+            )}
             <VenueList
                 venues={venues}
                 coupons={coupons}

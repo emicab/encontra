@@ -7,6 +7,7 @@ import { useRegion } from "@/components/providers/region-provider"
 import { VenueList } from "@/components/venue-list"
 import { Footer } from "@/components/footer"
 import { notFound } from "next/navigation"
+import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 
 // Helper to normalize strings for comparison (remove accents, lowercase)
 function normalize(str: string) {
@@ -150,12 +151,15 @@ export default function CityPage({ params }: Props) {
     if (!resolvedParams) return null // or loading
     if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>
 
-    // If no venues found (and we assume city must exist if venues exist), maybe 404? 
-    // Or just show empty list with "Locales en [City]"
-    // Ideally we would validate if 'city' is a valid zone in the DB, but for now we trust the filter.
-
     return (
         <div className="min-h-screen bg-background">
+            {resolvedParams && (
+                <PageViewTracker
+                    type="city"
+                    identifier={resolvedParams.city}
+                    metadata={{ region: resolvedParams.region, city: resolvedParams.city }}
+                />
+            )}
             <VenueList
                 venues={venues}
                 coupons={coupons}

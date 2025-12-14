@@ -1,14 +1,17 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Check, Clock, FileText, MessageCircle, ArrowRight, ShieldCheck } from "lucide-react"
+import { Check, Clock, FileText, MessageCircle, ArrowRight, ShieldCheck, X } from "lucide-react"
 import { PLANS } from "@/lib/business-logic"
+import { QrTracker } from "./qr-tracker"
 
 export default function PropuestaPage() {
     return (
         <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
+            <QrTracker />
 
             {/* 1. HERO SECTION */}
-            <section className="relative pt-20 pb-32 overflow-hidden bg-[#020617]"> {/* Forces Dark Slate-950 */}
+            <section className="relative pt-20 pb-32 overflow-hidden bg-[#020617]">
+                {/* ... (Hero content unchanged) ... */}
                 {/* Background elements */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
                     <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-50 animate-pulse"></div>
@@ -51,6 +54,7 @@ export default function PropuestaPage() {
 
             {/* 2. PROBLEM VS SOLUTION */}
             <section className="py-24 bg-muted/50 relative">
+                {/* ... (Problem Section unchanged) ... */}
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-5xl font-bold">
@@ -120,7 +124,8 @@ export default function PropuestaPage() {
             </section>
 
             {/* 3. HR SECTION */}
-            <section className="py-24 overflow-hidden bg-[#0f172a] text-white"> {/* Forces Dark Slate-900 */}
+            <section className="py-24 overflow-hidden bg-[#0f172a] text-white">
+                {/* ... (HR Section unchanged) ... */}
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col md:flex-row items-center gap-16">
                         <div className="w-full md:w-1/2 order-2 md:order-1">
@@ -184,9 +189,39 @@ export default function PropuestaPage() {
                         <p className="text-muted-foreground text-lg">Elegí la opción que mejor se adapte a tus necesidades actuales.</p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                        {/* Plan Emprendedor */}
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+
+                        {/* Plan Gratis */}
                         <div className="p-8 rounded-3xl bg-card border flex flex-col hover:border-primary/50 transition-colors shadow-sm">
+                            <h3 className="text-2xl font-bold mb-2">{PLANS.free.name}</h3>
+                            <p className="text-muted-foreground mb-6">Para estar presente en el mapa.</p>
+                            <div className="mb-8">
+                                <span className="text-4xl font-bold">Gratis</span>
+                            </div>
+                            <ul className="space-y-4 mb-8 flex-1">
+                                <li className="flex items-center gap-3 text-card-foreground">
+                                    <Check className="w-5 h-5 text-primary" /> Perfil Básico
+                                </li>
+                                <li className="flex items-center gap-3 text-card-foreground">
+                                    <Check className="w-5 h-5 text-primary" /> Categoría y Zona
+                                </li>
+                                <li className="flex items-center gap-3 text-muted-foreground">
+                                    <X className="w-5 h-5" /> Sin WhatsApp Link
+                                </li>
+                                <li className="flex items-center gap-3 text-muted-foreground">
+                                    <X className="w-5 h-5" /> Sin Redes Sociales
+                                </li>
+                            </ul>
+                            <Link href="/sumate" className="w-full block text-center py-3 rounded-xl border hover:bg-muted transition-colors font-semibold">
+                                Empezar Gratis
+                            </Link>
+                        </div>
+
+                        {/* Plan Emprendedor */}
+                        <div className="p-8 rounded-3xl bg-card border flex flex-col hover:border-primary/50 transition-colors shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                <FileText className="w-32 h-32" />
+                            </div>
                             <h3 className="text-2xl font-bold mb-2">{PLANS.basic.name}</h3>
                             <p className="text-muted-foreground mb-6">Para arrancar con presencia digital profesional.</p>
                             <div className="mb-8">
@@ -207,13 +242,18 @@ export default function PropuestaPage() {
                                     <Check className="w-5 h-5 text-primary" /> Perfil Verificado
                                 </li>
                             </ul>
-                            <Link href="/sumate" className="w-full block text-center py-3 rounded-xl border hover:bg-muted transition-colors font-semibold">
-                                Elegir {PLANS.basic.name}
+                            <Link
+                                href="https://wa.me/5493513958110?text=Hola,%20me%20interesa%20el%20Plan%20Emprendedor"
+                                target="_blank"
+                                className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-primary text-primary hover:bg-primary hover:text-white transition-colors font-bold"
+                            >
+                                <MessageCircle className="w-4 h-4" />
+                                Consultar Alta
                             </Link>
                         </div>
 
                         {/* Plan Full */}
-                        <div className="relative p-8 rounded-3xl bg-gradient-to-b from-[#0f172a] to-[#020617] text-white border border-primary/30 flex flex-col shadow-xl">
+                        <div className="relative p-8 rounded-3xl bg-gradient-to-b from-[#0f172a] to-[#020617] text-white border border-primary/30 flex flex-col shadow-xl transform md:-translate-y-4">
                             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg">
                                 Recomendado
                             </div>
@@ -245,7 +285,12 @@ export default function PropuestaPage() {
                                     <span>Recepción de CVs en PDF</span>
                                 </li>
                             </ul>
-                            <Link href="#contact" className="w-full block text-center py-3 rounded-xl bg-white text-slate-950 hover:bg-slate-200 transition-colors font-bold shadow-lg">
+                            <Link
+                                href="https://wa.me/5493513958110?text=Hola,%20me%20interesa%20el%20Plan%20Negocio%20Full"
+                                target="_blank"
+                                className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-slate-950 hover:bg-slate-200 transition-colors font-bold shadow-lg"
+                            >
+                                <MessageCircle className="w-4 h-4" />
                                 Contactar para Alta
                             </Link>
                         </div>
@@ -255,6 +300,7 @@ export default function PropuestaPage() {
 
             {/* 5. AUTHORITY & SOCIAL PROOF */}
             <section className="py-24 relative overflow-hidden bg-muted/30">
+                {/* ... (Authority Section unchanged) ... */}
                 <div className="container mx-auto px-4 text-center">
                     <h2 className="text-3xl md:text-4xl font-bold mb-8">Potenciando el comercio local en todo el país</h2>
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
@@ -262,12 +308,21 @@ export default function PropuestaPage() {
                     </p>
 
                     <Link
-                        href="https://wa.me/5492901XXXXXX"
+                        href="https://wa.me/5493513958110"
                         className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-[#25D366] text-white hover:bg-[#20bd5a] transition-colors font-semibold shadow-lg hover:shadow-green-500/30"
                     >
                         <MessageCircle className="w-5 h-5" />
                         ¿Tenés dudas? Hablá con nosotros.
                     </Link>
+
+                    <div className="mt-6">
+                        <Link
+                            href="mailto:hola@encontra.com.ar"
+                            className="text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                        >
+                            O envianos un correo a hola@encontra.com.ar
+                        </Link>
+                    </div>
                 </div>
             </section>
 
