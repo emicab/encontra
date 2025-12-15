@@ -21,50 +21,7 @@ import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { REGIONS } from "@/lib/regions";
-import { Bold, List } from "lucide-react"
-
-// Helper Component: Markdown Toolbar
-function MarkdownToolbar({ elementId }: { elementId: string }) {
-    const insertText = (before: string, after: string = "") => {
-        const textarea = document.getElementById(elementId) as HTMLTextAreaElement;
-        if (!textarea) return;
-
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const text = textarea.value;
-        const selectedText = text.substring(start, end);
-
-        const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
-
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
-        nativeInputValueSetter?.call(textarea, newText);
-
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        textarea.focus();
-        textarea.setSelectionRange(start + before.length, end + before.length);
-    };
-
-    return (
-        <div className="flex gap-1 mb-1.5 p-1 bg-gray-50 border border-gray-200 rounded-md w-fit">
-            <button
-                type="button"
-                onClick={() => insertText("**", "**")}
-                className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                title="Negrita"
-            >
-                <Bold size={14} />
-            </button>
-            <button
-                type="button"
-                onClick={() => insertText("- ")}
-                className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                title="Lista"
-            >
-                <List size={14} />
-            </button>
-        </div>
-    );
-}
+import { MarkdownToolbar } from "@/components/ui/markdown-toolbar"
 
 // Common fields
 const commonSchema = {
@@ -147,7 +104,7 @@ export function PublicJobForm() {
             company_logo: "",
             contact_phone: "",
             deadline: "",
-        },
+        } as any, // Cast to any to generic types avoid discriminated union issues in defaultValues
     })
 
     // Update mode in form when state changes

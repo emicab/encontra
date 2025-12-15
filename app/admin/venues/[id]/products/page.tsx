@@ -18,11 +18,25 @@ export default function VenueProductsPage() {
     const { toast } = useToast()
     const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
+    const [isAdmin, setIsAdmin] = useState(false)
     const venueId = params.id as string
 
     useEffect(() => {
+        checkUserRole()
         fetchProducts()
     }, [venueId])
+
+    async function checkUserRole() {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("is_admin")
+                .eq("id", user.id)
+                .single()
+            if (profile?.is_admin) setIsAdmin(true)
+        }
+    }
 
     async function fetchProducts() {
         setLoading(true)
@@ -113,7 +127,7 @@ export default function VenueProductsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" onClick={() => router.push("/admin/venues")}>
+                    <Button variant="outline" size="icon" onClick={() => isAdmin ? router.push("/admin/venues") : router.push("/admin/my-venue")}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <h1 className="text-3xl font-bold">Productos</h1>

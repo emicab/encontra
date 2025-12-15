@@ -56,9 +56,9 @@ export function EncontraBioView() {
 
 
                     <Button asChild variant="secondary" className="w-full h-12 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl gap-2 font-medium justify-start px-6">
-                        <Link href="/admin">
-                            <UserPlus size={18} />
-                            Ingreso Socios / Admin
+                        <Link href="/jobs">
+                            <Briefcase size={18} />
+                            Ver Empleos
                         </Link>
                     </Button>
 
@@ -100,6 +100,14 @@ export function EncontraBioView() {
                     <span className="text-[10px] text-gray-500">Bio Link</span>
                 </Link>
             </footer>
+
+            {/* Admin Link at the very bottom */}
+            <div className="bg-gray-50 py-4 text-center">
+                <Link href="/admin" className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1.5">
+                    <UserPlus size={12} />
+                    Ingreso Socios / Admin
+                </Link>
+            </div>
         </div>
     )
 }

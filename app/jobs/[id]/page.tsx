@@ -2,7 +2,7 @@ import { getJob } from '@/lib/actions/jobs';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, ArrowLeft, Building2, Globe, Share2, Calendar } from 'lucide-react';
+import { MapPin, Clock, ArrowLeft, Building2, Globe, Share2, Calendar, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { ApplicationForm } from '@/components/jobs/application-form';
 
@@ -112,7 +112,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     const canApply = !!job.contact_email;
 
     // structured data for Google Jobs
-    const jsonLd = {
+    const jsonLd: any = {
         '@context': 'https://schema.org',
         '@type': 'JobPosting',
         title: job.title,
@@ -189,13 +189,23 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-white text-center">
                         <div className="w-20 h-20 mx-auto bg-white rounded-xl border border-gray-100 flex items-center justify-center p-2 shadow-sm mb-4 relative overflow-hidden">
                             {(job.venues?.image || job.company_logo) ? (
-                                <img
-                                    src={job.venues?.image || job.company_logo}
-                                    alt={safeRender(job.venues?.name) || job.company_name}
-                                    className="w-full h-full object-contain rounded-lg"
-                                />
+                                job.venues?.website ? (
+                                    <a href={`https://${job.venues.website}`} target="_blank" rel="noopener noreferrer">
+                                        <img
+                                            src={job.venues?.image || job.company_logo}
+                                            alt={safeRender(job.venues?.name) || job.company_name}
+                                            className="w-full h-full object-contain rounded-lg"
+                                        />
+                                    </a>
+                                ) : (
+                                    <img
+                                        src={job.venues?.image || job.company_logo}
+                                        alt={safeRender(job.venues?.name) || job.company_name}
+                                        className="w-full h-full object-contain rounded-lg"
+                                    />
+                                )
                             ) : (
-                                <Building2 className="text-gray-300" size={32} />
+                                <Briefcase className="text-gray-300" size={32} />
                             )}
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight mb-2">
@@ -207,28 +217,54 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     </div>
 
                     {/* 2. Metadata Grid (Compact) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/50">
+                    {/* 2. Metadata Grid (Expanded) */}
+                    <div className={`grid grid-cols-2 ${job.contact_phone ? 'md:grid-cols-5' : 'md:grid-cols-4'} divide-x divide-y md:divide-y-0 divide-gray-100 border-b border-gray-100 bg-gray-50/50`}>
+
+                        {/* Tipo de Contrato (Anteriormente Modalidad) */}
                         <div className="p-4 text-center">
-                            <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Modalidad</span>
+                            <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Tipo de Contrato</span>
                             <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700">
                                 <Clock size={14} className="text-blue-500" />
                                 {getJobTypeLabel(job.job_type)}
                             </div>
                         </div>
+
+                        {/* Modalidad (Anteriormente Ubicación) */}
                         <div className="p-4 text-center">
-                            <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Ubicación</span>
+                            <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Modalidad</span>
                             <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700">
-                                <Globe size={14} className="text-green-500" />
+                                <Building2 size={14} className="text-purple-500" />
                                 {job.location_type === 'onsite' ? 'Presencial' : (job.location_type === 'hybrid' ? 'Híbrido' : 'Remoto')}
                             </div>
                         </div>
-                        <div className="p-4 text-center col-span-2 sm:col-span-1 border-t sm:border-t-0 border-gray-100">
+
+                        {/* Ubicación Real (Nueva) */}
+                        <div className="p-4 text-center">
+                            <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Ubicación</span>
+                            <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700">
+                                <MapPin size={14} className="text-red-500" />
+                                {job.venues?.city || job.city || job.venues?.region_code || job.region_code || 'Tierra del Fuego'}
+                            </div>
+                        </div>
+
+                        {/* Salario */}
+                        <div className="p-4 text-center">
                             <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Salario</span>
                             <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700">
                                 <span className="font-bold text-emerald-500">$</span>
                                 {formatSalary(job.salary_min, job.salary_max)}
                             </div>
                         </div>
+
+                        {/* Contacto WhatsApp (Nuevo) */}
+                        {job.contact_phone && (
+                            <div className="p-4 text-center col-span-2 md:col-span-1">
+                                <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">WhatsApp</span>
+                                <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-700">
+                                    <span className="font-mono text-xs">{job.contact_phone}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* 3. Description (Highlighted) */}

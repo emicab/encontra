@@ -47,14 +47,14 @@ const formSchema = z.object({
         lat: z.coerce.number(),
         lng: z.coerce.number(),
     }),
-    whatsapp: z.string().min(1, "El número de WhatsApp es obligatorio"),
+    whatsapp: z.string().optional(),
     website: z.string().optional(),
     instagram: z.string().optional(),
     facebook: z.string().optional(),
     phone: z.string().optional(),
     openTime: z.string().optional(),
     closeTime: z.string().optional(),
-    image: z.string().optional().or(z.literal("")),
+    image: z.string().optional(),
     logo: z.string().optional(),
     rating: z.coerce.number().min(0).max(5),
     reviewCount: z.coerce.number().min(0),
@@ -65,13 +65,6 @@ const formSchema = z.object({
     serviceArrangement: z.boolean().default(false),
     schedule: z.any(),
 }).superRefine((data, ctx) => {
-    // Debug logging
-    console.log("SuperRefine check:", {
-        mode: data.locationMode,
-        street: data.street,
-        zone: data.zone
-    })
-
     if (data.locationMode === "address" && !data.street) {
         console.error("Validation failed: Address mode requires street")
         ctx.addIssue({
@@ -304,7 +297,12 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 })
             }
 
-            router.push("/admin/venues")
+
+            if (isAdmin) {
+                router.push("/admin/venues")
+            } else {
+                router.push("/admin/my-venue")
+            }
             router.refresh()
         } catch (error: any) {
             console.error("Error saving venue full object:", error)
@@ -710,11 +708,10 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                                     name="whatsapp"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Número de WhatsApp</FormLabel>
+                                            <FormLabel>Número de WhatsApp (Opcional)</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="549..." {...field} />
                                             </FormControl>
-                                            <FormDescription>Formato: Código país + Código área + Número (sin espacios)</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -1057,7 +1054,7 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 {/* Floating Save Button */}
                 <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 md:left-64 z-50 shadow-lg">
                     <div className="container mx-auto flex justify-end gap-4 max-w-4xl">
-                        <Button type="button" variant="outline" onClick={() => router.back()}>
+                        <Button type="button" variant="outline" onClick={() => isAdmin ? router.back() : router.push("/admin/my-venue")}>
                             Cancelar
                         </Button>
                         <Button type="submit" disabled={isPending}>

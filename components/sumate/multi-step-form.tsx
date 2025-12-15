@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import ImageUpload from "@/components/ui/image-upload"
+import { MarkdownToolbar } from "@/components/ui/markdown-toolbar"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -12,13 +13,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, ChevronRight, ChevronLeft, Loader2 } from "lucide-react"
+import { Check, ChevronRight, ChevronLeft, Loader2, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 
-import { supabase } from "@/lib/supabase"
 import { useRegion } from "@/components/providers/region-provider"
 import { REGIONS } from "@/lib/regions"
+import { registerVenue } from "@/lib/actions/onboarding"
 
 const formSchema = z.object({
     // Step 1: Business Info
@@ -27,10 +28,11 @@ const formSchema = z.object({
     customCategory: z.string().optional(),
     description: z.string().min(10, "Contanos un poco más sobre tu negocio (mínimo 10 caracteres)"),
 
-    // Step 2: Contact & Socials
+    // Step 2: Contact & Socials & Auth
     ownerName: z.string().min(2, "Tu nombre es requerido"),
     ownerEmail: z.string().email("Ingresá un email válido"),
-    whatsapp: z.string().min(8, "Ingresá un WhatsApp válido"),
+    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"), // New Field
+    whatsapp: z.string().optional(),
     instagram: z.string().optional(),
     website: z.string().optional(),
     facebook: z.string().optional(),
@@ -44,7 +46,8 @@ const formSchema = z.object({
     locationType: z.enum(["address", "zone"]),
     coordinates: z.object({ lat: z.number(), lng: z.number() }).optional(),
     street: z.string().optional(),
-    city: z.string().optional(),
+    city: z.string().min(2, "Ingresá la ciudad"),
+    province: z.string().min(2, "Seleccioná la provincia"),
     zone: z.string().optional(),
     hours: z.string().optional(),
 })
@@ -53,16 +56,16 @@ type FormData = z.infer<typeof formSchema>
 
 const steps = [
     { id: 1, title: "Tu Negocio" },
-    { id: 2, title: "Contacto" },
+    { id: 2, title: "Tus Datos" },
     { id: 3, title: "Multimedia" },
     { id: 4, title: "Ubicación" },
-    { id: 5, title: "Confirmación" },
 ]
 
 export function SumateForm() {
     const regionCode = useRegion()
     const [step, setStep] = useState(1)
     const [isPending, setIsPending] = useState(false)
+    const [showPassword, setShowPassword] = useState(false) // Toggle state
     const { toast } = useToast()
 
     const form = useForm<FormData>({
@@ -71,6 +74,7 @@ export function SumateForm() {
             name: "",
             ownerName: "",
             ownerEmail: "",
+            password: "",
             category: "",
             customCategory: "",
             description: "",
@@ -82,6 +86,8 @@ export function SumateForm() {
             logo: "",
             location: "",
             locationType: "address",
+            city: "",
+            province: "",
             hours: "",
         },
         mode: "onChange",
@@ -95,13 +101,11 @@ export function SumateForm() {
             fieldsToValidate = ["name", "category", "description"]
             if (category === "other") fieldsToValidate.push("customCategory")
         } else if (step === 2) {
-            fieldsToValidate = ["ownerName", "ownerEmail", "whatsapp"]
+            fieldsToValidate = ["ownerName", "ownerEmail", "password"]
         } else if (step === 3) {
-            // Optional images
             fieldsToValidate = []
         } else if (step === 4) {
-            // Should not be called via 'nextStep' button generally, as button is submit, but for consistency
-            fieldsToValidate = ["location", "locationType"] // Hours optional
+            fieldsToValidate = ["location", "locationType", "province", "city"]
         }
 
         const isValid = await form.trigger(fieldsToValidate)
@@ -116,6 +120,7 @@ export function SumateForm() {
 
     const onSubmit = async (data: FormData) => {
         setIsPending(true)
+
         try {
             let detectedRegion = regionCode || ""
             let detectedZone = ""
@@ -133,11 +138,7 @@ export function SumateForm() {
                         lat = parseFloat(result.lat)
                         lng = parseFloat(result.lon)
                         const address = result.address
-
-                        // Extract zone
                         detectedZone = address.city || address.town || address.village || address.suburb || address.municipality || ""
-
-                        // Extract region logic as before
                         const state = address.state || address.province || ""
                         const match = Object.entries(REGIONS).find(([_, name]) => {
                             return state.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(state.toLowerCase())
@@ -149,51 +150,44 @@ export function SumateForm() {
                 }
             }
 
-            const { error } = await supabase.from("venue_requests").insert({
-                name: data.name,
-                category: data.category,
-                custom_category: data.customCategory,
-                description: data.description,
-                phone: data.whatsapp, // Using whatsapp as main phone
-                whatsapp: data.whatsapp,
-                owner_name: data.ownerName, // Make sure these match DB columns
-                owner_email: data.ownerEmail,
-                instagram: data.instagram,
-                website: data.website,
-                facebook: data.facebook,
-                image: data.image,
-                logo: data.logo,
-                location: data.location,
-                location_type: data.locationType,
-                hours: data.hours,
+            // Prepare payload
+            const payload = {
+                ...data, // includes password
+                email: data.ownerEmail,
                 coordinates: { lat, lng },
-                region_code: detectedRegion,
-                zone: detectedZone || data.zone, // Fallback to manual zone if added in future
-                status: 'pending'
-            })
+                region: detectedRegion || data.province, // Use selected province as region if detection fails or just pass it
+                province: data.province,
+                city: data.city,
+                zone: detectedZone || data.zone || "Zona General",
+                web: data.website, // mapping website to web
+            }
 
-            if (error) throw error
+            // Call Server Action
+            const result = await registerVenue(payload)
+
+            if (!result.success) {
+                throw new Error(result.error)
+            }
 
             toast({
-                title: "¡Solicitud Recibida!",
-                description: "Vamos a revisar tu información y te contactaremos pronto.",
+                title: "¡Cuenta Creada!",
+                description: "Tu local ha sido registrado con éxito.",
             })
 
-            setStep(5) // Show success step
+            // Redirect to Success Page
+            window.location.href = "/sumate/exito"
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Hubo un problema al enviar la solicitud.",
+                description: error.message || "Hubo un problema al registrar tu cuenta.",
             })
         } finally {
             setIsPending(false)
         }
     }
-
-
 
     return (
         <div className="w-full max-w-2xl mx-auto">
@@ -223,6 +217,7 @@ export function SumateForm() {
             <Card className="border-2 shadow-lg mb-10">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
                         {/* Step 1: Business Info */}
                         {step === 1 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
@@ -296,13 +291,20 @@ export function SumateForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Descripción Breve</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        placeholder="¿Qué hacés? ¿Qué vendés? ¿Qué te hace especial?"
-                                                        className="resize-none"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
+                                                <div className="space-y-2">
+                                                    <MarkdownToolbar elementId="description" />
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Podés usar la barra de herramientas para resaltar texto o crear listas.
+                                                    </p>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            id="description"
+                                                            placeholder="¿Qué hacés? ¿Qué vendés? ¿Qué te hace especial?"
+                                                            className="resize-none"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -316,36 +318,71 @@ export function SumateForm() {
                             </div>
                         )}
 
-                        {/* Step 2: Contact Info */}
+                        {/* Step 2: User Account & Contact */}
                         {step === 2 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <CardHeader>
-                                    <CardTitle>Contacto</CardTitle>
-                                    <p className="text-muted-foreground">¿Cómo te contactamos a vos y a tu negocio?</p>
+                                    <CardTitle>Creá tu Cuenta</CardTitle>
+                                    <p className="text-muted-foreground">Tus datos para administrar el local.</p>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <CardContent className="space-y-6">
+                                    <div className="space-y-4 border-b pb-6">
+                                        <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">Tus Datos</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="ownerName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Tu Nombre Completo</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Ej: Juan Pérez" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="ownerEmail"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Tu Email (Usuario)</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="juan@ejemplo.com" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                         <FormField
                                             control={form.control}
-                                            name="ownerName"
+                                            name="password"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Tu Nombre (Dueño/Encargado)</FormLabel>
+                                                    <FormLabel>Contraseña</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Ej: Juan Pérez" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="ownerEmail"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Tu Email Personal</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="juan@ejemplo.com" {...field} />
+                                                        <div className="relative">
+                                                            <Input
+                                                                type={showPassword ? "text" : "password"}
+                                                                placeholder="Mínimo 6 caracteres"
+                                                                {...field}
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                                                onClick={() => setShowPassword(!showPassword)}
+                                                            >
+                                                                {showPassword ? (
+                                                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                                                ) : (
+                                                                    <Eye className="h-4 w-4 text-muted-foreground" />
+                                                                )}
+                                                            </Button>
+                                                        </div>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -353,61 +390,64 @@ export function SumateForm() {
                                         />
                                     </div>
 
-                                    <FormField
-                                        control={form.control}
-                                        name="whatsapp"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>WhatsApp del Negocio</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Ej: 2901 123456" {...field} />
-                                                </FormControl>
-                                                <FormDescription>Para que los clientes te contacten.</FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">Contacto del Negocio</h3>
+                                        <FormField
+                                            control={form.control}
+                                            name="whatsapp"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>WhatsApp Público</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Ej: 2901 123456" {...field} />
+                                                    </FormControl>
+                                                    <FormDescription>Para que los clientes te contacten.</FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="instagram"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Instagram (Opcional)</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="@tu.negocio" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="facebook"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Facebook (Opcional)</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Tu Negocio" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="website"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Sitio Web (Opcional)</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="www.tunegocio.com" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="instagram"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Instagram</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="@tu.negocio" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="facebook"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Facebook</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Tu Negocio" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="website"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Web</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="www.tunegocio.com" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex justify-between">
@@ -429,8 +469,8 @@ export function SumateForm() {
                                     <p className="text-muted-foreground">Dale vida a tu perfil (Subí tus imágenes).</p>
                                 </CardHeader>
                                 <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto">
-                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800 mb-4">
-                                        <strong>⭐ Tip:</strong> La Foto de Portada y Galería son beneficios exclusivos del <strong>Plan Negocio Full</strong>.
+                                    <div className="p-4 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 mb-4">
+                                        <strong>⭐ Beneficio Trial:</strong> Tenés habilitada la carga de Portada y Galería completa por 30 días.
                                     </div>
 
                                     <FormField
@@ -491,7 +531,7 @@ export function SumateForm() {
                                     <CardTitle>Ubicación y Horarios</CardTitle>
                                     <p className="text-muted-foreground">¿Dónde y cuándo te encuentran?</p>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
+                                <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto">
                                     <FormField
                                         control={form.control}
                                         name="hours"
@@ -505,6 +545,46 @@ export function SumateForm() {
                                             </FormItem>
                                         )}
                                     />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="province"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Provincia</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Seleccioná" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Object.entries(REGIONS).map(([code, name]) => (
+                                                                <SelectItem key={code} value={code}>
+                                                                    {name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="city"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Ciudad</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Ej: Ushuaia" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
                                     <FormField
                                         control={form.control}
@@ -564,25 +644,9 @@ export function SumateForm() {
                                     </Button>
                                     <Button type="submit" disabled={isPending}>
                                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Enviar Solicitud
+                                        Confirmar y Crear
                                     </Button>
                                 </CardFooter>
-                            </div>
-                        )}
-
-                        {/* Success Message - Technically not a form step but visual feedback */}
-                        {step === 5 && (
-                            <div className="animate-in zoom-in duration-500 text-center py-8">
-                                <div className="mx-auto w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                                    <Check className="h-8 w-8" />
-                                </div>
-                                <h2 className="text-2xl font-bold mb-2">¡Gracias por sumarte!</h2>
-                                <p className="text-muted-foreground mb-6">
-                                    Hemos recibido tu información. Vamos a revisarla y crear tu perfil pronto.
-                                </p>
-                                <Button type="button" variant="outline" onClick={() => window.location.href = "/"}>
-                                    Volver al Inicio
-                                </Button>
                             </div>
                         )}
                     </form>

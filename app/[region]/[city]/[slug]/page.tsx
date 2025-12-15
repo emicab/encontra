@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { VenueDetailView } from "@/components/venue-detail-view"
 import { getVenue } from "@/lib/services"
+import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,7 @@ export async function generateMetadata(
 }
 
 export default async function VenuePage({ params }: Props) {
-    const { region, slug } = await params
+    const { region, city, slug } = await params
     const { venue, products, coupons } = await getVenue(region, slug)
 
     if (!venue) {
@@ -113,6 +114,16 @@ export default async function VenuePage({ params }: Props) {
 
     return (
         <>
+            <PageViewTracker
+                type="venue"
+                identifier={slug}
+                metadata={{
+                    region,
+                    city,
+                    slug,
+                    venueId: venue.id
+                }}
+            />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -3,9 +3,9 @@
 import React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LayoutDashboard, Store, Ticket, Settings, LogOut, Menu, Inbox, Flag, Briefcase } from "lucide-react"
+import { LayoutDashboard, Store, Ticket, Settings, LogOut, Menu, Inbox, Flag, Briefcase, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -99,6 +99,13 @@ export default function AdminLayout({
                         <Ticket className="h-4 w-4" />
                         Cupones
                     </Link>
+                    <Link
+                        href="/admin/analytics"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                    >
+                        <BarChart3 className="h-4 w-4" />
+                        Analíticas
+                    </Link>
                 </>
             ) : (
                 <Link
@@ -153,6 +160,10 @@ export default function AdminLayout({
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="flex flex-col">
+                            <SheetHeader className="sr-only">
+                                <SheetTitle>Menú de Navegación</SheetTitle>
+                                <SheetDescription>Opciones de menú para administración</SheetDescription>
+                            </SheetHeader>
                             <nav className="grid gap-2 text-lg font-medium">
                                 <Link href="#" className="flex items-center gap-2 text-lg font-semibold mb-4">
                                     <Store className="h-6 w-6" />

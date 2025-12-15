@@ -1,4 +1,4 @@
-# Encontrá - La Guía de Locales y Servicios `v1.10.1`
+# Encontrá - La Guía de Locales y Servicios `v1.13.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
@@ -6,6 +6,51 @@ Este proyecto es una plataforma web moderna diseñada para conectar a la comunid
 
 ## 📋 Registro de Cambios (Changelog)
 
+### `v1.13.0` - Seguridad Admin y Navegación
+*   **Seguridad del Panel Administrativo**:
+    *   **Protección de Rutas Globales**: Bloqueo estricto de rutas de "Super Admin" (`/admin/venues`, `/admin/users`, `/admin/requests`) para dueños de locales, redirigiendo automáticamente a "Mi Negocio".
+    *   **Aislamiento de Datos**: Garantía de que cada dueño solo pueda ver y editar su propio local.
+*   **Mejoras de Navegación**:
+    *   **Botones "Volver" Inteligentes**: Lógica condicional en formularios de edición y productos.
+        *   Si es **Admin** -> Vuelve al listado general.
+        *   Si es **Dueño** -> Vuelve a su panel principal (`/admin/my-venue`).
+*   **Configuración de Usuario**:
+    *   **Perfil Editable**: Nueva funcionalidad en `/admin/settings` que permite ver y modificar el nombre del usuario.
+    *   **Persistencia Dual**: Actualización sincronizada en `auth.users` (metadata) y tabla `profiles`.
+*   **Optimización de Registro (`/sumate`)**:
+    *   **Ubicación Detallada**: Nuevos selectores de Provincia y Ciudad en el formulario de registro.
+    *   **Generación de Slug**: Creación automática de URLs amigables (`nombre-del-local`) al registrarse.
+    *   **Autenticación**: Solución a errores de "Anonymous sign-ins" asegurando el flujo correcto de email y contraseña.
+
+### `v1.12.0` - Sistema de Analíticas y Tracking
+*   **Inteligencia de Datos**:
+    *   **Dashboard Analítico**: Nueva sección "Analíticas" en el panel de administración con métricas clave.
+    *   **Tracking Híbrido**: Rastreo de escaneos QR (`?source=qr-card`) y vistas de página (`page_view`).
+    *   **Ranking de Popularidad**: Tablas de "Top Locales" y "Top Ciudades" para identificar tendencias de tráfico.
+    *   **Historial Detallado**: Registro cronológico de cada interacción (scan, visit) con fuente y ruta.
+*   **Tracking Universal**:
+    *   Implementación de `PageViewTracker` en todas las páginas clave (Región, Ciudad, Local) para medir el impacto real de cada sección de la plataforma.
+    *   Deduplicación automática de eventos en desarrollo (Strict Mode safe).
+
+### `v1.11.0` - Landing de Venta: "Propuesta"
+*   **Marketing & Conversión**:
+    *   **Landing Page Dedicada**: Nueva ruta `/propuesta` diseñada como "Carta de Venta" para comerciantes.
+    *   **Diseño Premium**: Estética diferenciada (Dark Mode, Glassmorphism) enfocada en transmitir alta calidad y profesionalismo.
+    *   **Contenido Persuasivo**: Secciones visuales de "Problema vs Solución", "Flujo de RRHH" y Comparativa de Planes con precios actualizados.
+    *   **Call-To-Action (CTA)**: Integración directa con flujos de registro (`/sumate`) y contacto vía WhatsApp.
+*   **Assets Visuales**:
+    *   Generación de mockups 3D personalizados mostrando la app en uso real.
+    *   Gráficos explicativos para simplificar la propuesta de valor.
+
+### `v1.10.2` - UX de Empleos y Refactorización
+*   **Bio Encontrá**:
+    *   **Acceso Optimizado**: Reorganización de botones en `/bio-encontra`. Acceso prioritario a "Ver Empleos" y reubicación del "Login Admin" al footer para mejorar la experiencia de usuario final.
+*   **Experiencia de Candidato**:
+    *   **Ubicación Precisa**: Las tarjetas de empleo ahora muestran explícitamente **Ciudad, Provincia** (ej: "Ushuaia, Tierra del Fuego") en lugar de regiones genéricas.
+    *   **Filtrado Híbrido**: Corrección en la lógica de filtrado por URL (`/region/city/jobs`) para incluir correctamente tanto empleos vinculados a locales (Venues) como ofertas públicas (Job Board).
+*   **Calidad de Código y Accesibilidad**:
+    *   **Refactorización Modular**: Desacoplamiento del formulario de carga de empleos (`Admin Job Form`) en componentes reutilizables y extracción de herramientas compartidas (`MarkdownToolbar`).
+    *   **Accesibilidad Móvil**: Corrección de etiquetas de diálogo (`SheetTitle`) en el menú de navegación móvil para cumplir con estándares de lectores de pantalla.
 ### `v1.10.1` - FIX ERRORES
 ### `v1.10.0` - Bio Institucional y Gestión Avanzada de Empleos
 *   **Bio Encontrá**:
