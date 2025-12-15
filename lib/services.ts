@@ -12,7 +12,6 @@ export async function getVenue(region: string, slug: string): Promise<{ venue: V
 
     // Fallback to mock if env vars are missing
     if (!supabaseUrl || !supabaseKey) {
-        console.warn(`Supabase credentials missing (URL: ${!!supabaseUrl}, Key: ${!!supabaseKey}), using mock data`)
         const mockVenue = mockVenues.find((v) => v.slug === decodedSlug && (!regionCode || v.regionCode === regionCode))
         if (mockVenue) {
             return {

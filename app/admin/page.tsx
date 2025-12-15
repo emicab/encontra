@@ -85,7 +85,48 @@ export default function AdminDashboard() {
 
                 setRawVenues(venuesData || [])
 
-                // 2. Coupons
+                const { data: { user } } = await supabase.auth.getUser()
+
+                if (!user) {
+                    router.replace("/login")
+                    return
+                }
+
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("is_admin")
+                    .eq("id", user.id)
+                    .single()
+
+                // Security Check
+                // Security Check & Redirects
+                if (!profile?.is_admin) {
+                    // Check if they are a recruiter or have a venue
+                    // We need to decide where to send them.
+                    const { count: venueCount } = await supabase
+                        .from("venues")
+                        .select("*", { count: 'exact', head: true })
+                        .eq("owner_id", user.id);
+
+                    const hasVenue = (venueCount || 0) > 0;
+                    const isRecruiter = user.user_metadata?.role === 'recruiter';
+
+                    if (hasVenue) {
+                        router.replace("/admin/my-venue");
+                    } else {
+                        // Default to jobs (even if they don't have one yet, it's the right place to create one)
+                        router.replace("/admin/my-jobs");
+                    }
+                    return;
+                }
+
+                // 2. Fetch Stats (Only if Admin)
+                // Venues stats were already fetched at the top (lines 74-76), but we can optimize/move them later. 
+                // Since this block was inserted in the middle, let's keep the flow clean.
+                // The original code fetched venues first. That's fine, but maybe wasteful if not admin.
+                // For now, let's just ensure if they are not admin, we stop.
+
+                // 2. Coupons (Proceeding with original code flow)
                 const { count: couponsCount, error: couponsError } = await supabase
                     .from('coupons')
                     .select('*', { count: 'exact', head: true })

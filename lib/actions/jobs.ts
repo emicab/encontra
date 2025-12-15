@@ -26,7 +26,9 @@ export type Job = {
     contact_email: string;
     contact_phone?: string;
     is_active: boolean;
-    application_count: number;
+    application_count?: number; // DB column: applications_count
+    applications_count?: number; // Alias often used if not careful, sticking to snake_case matches DB usually
+    views?: number;
     slug?: string;
     venues?: {
         name: string;
@@ -151,10 +153,13 @@ export async function getJobs(filters?: { region?: string; city?: string; zone?:
     return data;
 }
 
-export async function getJob(id: string) {
+export async function getJob(idOrSlug: string) {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    // Simple UUID check regex (8-4-4-4-12 hex digits)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+
+    let query = supabase
         .from('jobs')
         .select(`
       *,
@@ -167,9 +172,15 @@ export async function getJob(id: string) {
         zone,
         city
       )
-    `)
-        .eq('id', id)
-        .single();
+    `);
+
+    if (isUUID) {
+        query = query.eq('id', idOrSlug);
+    } else {
+        query = query.eq('slug', idOrSlug);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
         console.error('Error fetching job:', error);
@@ -209,6 +220,21 @@ export async function submitApplication(formData: FormData) {
         return { success: false, error: 'Error de validación de seguridad (Captcha)' };
     }
 
+    // Increment Application Count in DB (Optimistic - we do it before email or parallel)
+    const supabaseAdmin = createAdminClient();
+    // We use RPC or raw update to increment safely
+    // But simplistic approach: get current, +1, update.
+    // Better: create a stored procedure 'increment_applications_count' or just use rpc if available.
+    // For now, let's just do a simple read-update since high concurrency is unlikely for this niche.
+    // Actually, Supabase has no built-in atomic increment via JS client easily without Rpc.
+    // Let's use the 'rpc' approach if we had one "increment_counter".
+    // Fallback: Fetch current count.
+    const { data: jobData } = await supabaseAdmin.from('jobs').select('applications_count').eq('id', jobId).single();
+    const currentCount = jobData?.applications_count || 0;
+
+    await supabaseAdmin.from('jobs').update({ applications_count: currentCount + 1 }).eq('id', jobId);
+
+
     if (!employerEmail) {
         return { success: false, error: 'No employer email found' };
     }
@@ -218,13 +244,13 @@ export async function submitApplication(formData: FormData) {
     }
 
     // 2. Prepare Attachment
-    console.log(`[JobApplication] Processing CV: ${file.name} (${file.size} bytes)`);
+
 
     try {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log(`[JobApplication] Sending email via Resend to ${employerEmail}...`);
+
 
         // Create a timeout promise
         const timeout = new Promise((_, reject) =>
@@ -402,59 +428,95 @@ export async function upsertJob(data: Partial<Job>) {
         return { success: false, error: 'Unauthorized' };
     }
 
+    // Check if user is Admin
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+    const isAdmin = profile?.is_admin;
+
+    // Select Client: Admins get service role (bypass RLS), Users get standard (enforced RLS)
+    const client = isAdmin ? createAdminClient() : supabase;
+
+
+
+
     // Prepare data
     const jobData = { ...data };
 
-    // Check ownership / Adoption logic
+    // Set owner_id for new records if not present (Admins might be creating for themselves or others, but typically valid logic matches existing pattern)
+    // If updating, owner_id shouldn't change unless explicit.
+    if (!jobData.id && !jobData.owner_id) {
+        jobData.owner_id = user.id;
+    }
+
+    // Check ownership / Adoption logic (Only for standard users if we wanted to enforce logic, but RLS/Admin client split handles 99%)
     // If Updating...
     if (jobData.id) {
-        // Fetch current owner using Admin Client to bypass RLS (in case it's invisible)
-        const supabaseAdmin = createAdminClient();
-        const { data: currentJob, error: fetchError } = await supabaseAdmin
-            .from('jobs')
-            .select('owner_id')
-            .eq('id', jobData.id)
-            .single();
-
-        if (fetchError || !currentJob) {
-            return { success: false, error: 'Job not found' };
-        }
-
-        // If job has NO owner (Public Request), allow adoption!
-        if (!currentJob.owner_id) {
-            jobData.owner_id = user.id; // Claim it
-        } else if (currentJob.owner_id !== user.id) {
-            // Check if user is absolute Admin (optional, but RLS usually handles this)
-            // For now, if owner mismatch, RLS "update" policy will fail unless we use Admin Client.
-            // If we WANT admins to edit ANY job, we should use Admin Client here too.
-            // Let's rely on standard RLS "Users can update their own jobs" for normal logic,
-            // OR use AdminClient if we trust the user is an Admin (which we don't know here easily).
-
-            // NOTE: If the user IS the owner, standard client works.
-            // If the user IS NOT the owner, standard client fails.
-            // If the user just claimed it (was null), we MUST use AdminClient to perform the update
-            // because standard client RLS "auth.uid() = owner_id" will compare with NULL (db) vs USER (auth).
-        }
-
-        // If we are claiming it (owner was null), we MUST use Admin Client to save.
-        if (!currentJob.owner_id) {
-            const { data: result, error } = await supabaseAdmin
+        // SAFETY CHECK: Preserve owner_id if not provided in update payload
+        // This prevents Admin Approval from accidentally wiping the owner if the form didn't send it.
+        if (!jobData.owner_id) {
+            const adminClient = createAdminClient();
+            const { data: currentJob } = await adminClient
                 .from('jobs')
-                .upsert(jobData)
-                .select()
+                .select('owner_id')
+                .eq('id', jobData.id)
                 .single();
 
-            if (error) return { success: false, error: error.message };
+            if (currentJob && currentJob.owner_id) {
 
-            // Revalidate
-            revalidatePath('/jobs');
-            revalidatePath('/admin/jobs');
-            return { success: true, data: result };
+                jobData.owner_id = currentJob.owner_id;
+            }
         }
 
-    } else {
-        // Creating new job
-        jobData.owner_id = user.id;
+        if (!isAdmin) {
+            // ... legacy logic for standard user adoption ...
+            const supabaseAdmin = createAdminClient();
+            const { data: currentJob, error: fetchError } = await supabaseAdmin
+                .from('jobs')
+                .select('owner_id')
+                .eq('id', jobData.id)
+                .single();
+
+            if (fetchError || !currentJob) {
+                return { success: false, error: 'Job not found' };
+            }
+
+            // If job has NO owner (Public Request), allow adoption!
+            if (!currentJob.owner_id) {
+                jobData.owner_id = user.id; // Claim it
+            } else if (currentJob.owner_id !== user.id) {
+                // Check if user is absolute Admin (optional, but RLS usually handles this)
+                // For now, if owner mismatch, RLS "update" policy will fail unless we use Admin Client.
+                // If we WANT admins to edit ANY job, we should use Admin Client here too.
+                // Let's rely on standard RLS "Users can update their own jobs" for normal logic,
+                // OR use AdminClient if we trust the user is an Admin (which we don't know here easily).
+
+                // NOTE: If the user IS the owner, standard client works.
+                // If the user IS NOT the owner, standard client fails.
+                // If the user just claimed it (was null), we MUST use AdminClient to perform the update
+                // because standard client RLS "auth.uid() = owner_id" will compare with NULL (db) vs USER (auth).
+            }
+
+            // If we are claiming it (owner was null), we MUST use Admin Client to save.
+            if (!currentJob.owner_id) {
+                const { data: result, error } = await supabaseAdmin
+                    .from('jobs')
+                    .upsert(jobData)
+                    .select()
+                    .single();
+
+                if (error) return { success: false, error: error.message };
+
+                // Revalidate
+                revalidatePath('/jobs');
+                revalidatePath('/admin/jobs');
+                return { success: true, data: result };
+            }
+
+        }
     }
 
 
@@ -539,11 +601,17 @@ export async function upsertJob(data: Partial<Job>) {
     // Remove expanded relations if present to avoid DB error
     delete (jobData as any).venues;
 
-    const { data: result, error } = await supabase
+
+
+    const { data: result, error } = await client
         .from('jobs')
         .upsert(jobData)
         .select()
         .single();
+
+    if (result) {
+
+    }
 
     if (error) {
         console.error('Error upserting job:', error);
@@ -568,15 +636,41 @@ export async function deleteJob(id: string) {
     const supabase = await createClient();
 
     // Validate session
-    const { data: { user } = {} } = await supabase.auth.getUser(); // Destructure with default empty object
+    const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) {
         return { success: false, error: 'Unauthorized' };
     }
 
-    const { error } = await supabase
-        .from('jobs')
-        .delete()
-        .eq('id', id);
+    // Check if user is Admin
+    // We can't trust the client-side cookie claim fully without verifying against DB or relying on custom claims if set.
+    // Query profiles.
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+    const isAdmin = profile?.is_admin || false;
+
+    let error;
+
+    if (isAdmin) {
+        // Use Admin Client to bypass RLS (Admins can delete anything)
+        const supabaseAdmin = createAdminClient();
+        const response = await supabaseAdmin
+            .from('jobs')
+            .delete()
+            .eq('id', id);
+        error = response.error;
+    } else {
+        // Standard User (RLS will restrict to own jobs)
+        const response = await supabase
+            .from('jobs')
+            .delete()
+            .eq('id', id);
+        error = response.error;
+    }
 
     if (error) {
         console.error('Error deleting job:', error);
@@ -591,10 +685,98 @@ export async function deleteJob(id: string) {
 
 
 export async function submitJobRequest(data: any) {
-    // Use Admin Client to bypass RLS for public submissions
-    const supabase = createAdminClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Prepare data
+    // 1. Validate Inputs
+    if (!user && (!data.contact_email || !data.password)) {
+        return { success: false, error: 'Email y contraseña son requeridos para gestionar tu aviso.' };
+    }
+
+    if (!data.title) {
+        return { success: false, error: 'El título es requerido.' };
+    }
+
+    const supabaseAdmin = createAdminClient();
+    // supabase client already declared at top
+
+
+
+    let userId = '';
+    let venueIdToLink = data.venue_id || null; // If passed from UI (user selected one)
+
+    // 2. Auth Logic: Check if user exists or create
+    let verifiedUser = user || null;
+    let isNewUser = false;
+
+    if (!verifiedUser) {
+
+
+        // Try to create user
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email: data.contact_email,
+            password: data.password,
+            email_confirm: true,
+            user_metadata: { role: 'recruiter' }
+        });
+
+        if (createError) {
+
+
+            // Check if user already exists
+            if (createError.message.includes('already registered') || createError.status === 400 || createError.status === 422) {
+
+
+                // Verify Password
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                    email: data.contact_email,
+                    password: data.password
+                });
+
+                if (signInError || !signInData.user) {
+                    console.error("SubmitJobRequest: SignIn failed:", signInError);
+                    return { success: false, error: 'El usuario ya existe pero la contraseña es incorrecta.' };
+                }
+
+                verifiedUser = signInData.user;
+
+            } else {
+                console.error("SubmitJobRequest: Create user critical error:", createError);
+                return { success: false, error: 'Error al registrar usuario: ' + createError.message };
+            }
+        } else {
+
+            verifiedUser = newUser.user;
+        }
+    }
+
+    if (!verifiedUser) {
+        return { success: false, error: "Error de autenticación inesperado." };
+    }
+
+    userId = verifiedUser.id;
+
+
+    // 3. User Venues Check (for linking)
+    const { data: userVenues } = await supabaseAdmin
+        .from('venues')
+        .select('id, name, slug, image')
+        .eq('owner_id', userId);
+
+    if (userVenues && userVenues.length > 0) {
+        // If the user hasn't selected a venue yet (and didn't explicitly skip)
+        if (!venueIdToLink && !data.skip_venue_link) {
+
+            return {
+                success: false,
+                requires_venue_selection: true,
+                venues: userVenues,
+                message: `Detectamos que administrás locales. ¿Querés publicar esto a nombre de alguno?`
+            };
+        }
+    }
+
+    // 3. Prepare Job Data
     // Random slug for uniqueness
     const slug = (data.title || "job")
         .toLowerCase()
@@ -609,62 +791,26 @@ export async function submitJobRequest(data: any) {
     if (data.description && typeof data.description === 'string' && data.description.length > 0) {
         // Basic Mode: Description is passed directly
         descriptionBlock = data.description;
-
-        // Append extra basic fields if they exist and aren't in the text usually
-        if (data.location_city && !descriptionBlock.includes(data.location_city)) {
-            // No appending city to description anymore
-        }
-        if (data.contact_phone && !descriptionBlock.includes(data.contact_phone)) {
-            // No appending phone to description anymore
-        }
-
     } else {
-
-        // Rol
+        // Advanced Mode Assembly
         if (data.role_description) descriptionBlock += `**Descripción del Rol:**\n${data.role_description}\n\n`;
-
-        // Responsabilidades
         if (data.responsibilities) descriptionBlock += `**Responsabilidades:**\n${data.responsibilities}\n\n`;
-
-        // Requisitos
         if (data.requirements_min) descriptionBlock += `**Requisitos Mínimos:**\n${data.requirements_min}\n\n`;
-        if (data.requirements_opt) {
-            descriptionBlock += `**Requisitos Opcionales:**\n${data.requirements_opt}\n\n`;
-        }
-
-        // Ubicación
-        // Moved to metadata grid
-        // if (data.location_city) {
-        //    descriptionBlock += `**Ubicación:** ${data.location_city}`;
-        //    if (data.location_address) descriptionBlock += ` (${data.location_address})`;
-        //    descriptionBlock += `\n`;
-        // }
-
-        // Horario
+        if (data.requirements_opt) descriptionBlock += `**Requisitos Opcionales:**\n${data.requirements_opt}\n\n`;
         if (data.schedule) descriptionBlock += `**Horario:** ${data.schedule}\n`;
-
-        // Beneficios
         if (data.benefits) descriptionBlock += `\n**Beneficios:**\n${data.benefits}\n\n`;
-
-        // Company Info
-        if (data.company_description) {
-            descriptionBlock += `\n**Sobre la empresa:**\n${data.company_description}\n`;
-        }
-
-        // Contact / Deadline
-        // Phone moved to metadata grid
-        // if (data.contact_phone) descriptionBlock += `\n**WhatsApp/Tel:** ${data.contact_phone}`;
+        if (data.company_description) descriptionBlock += `\n**Sobre la empresa:**\n${data.company_description}\n`;
         if (data.deadline) descriptionBlock += `\n**Fecha Límite:** ${data.deadline}`;
-
     }
 
-
-    // 2. Insert as inactive
+    // 4. Insert Job
     const jobData = {
+        owner_id: userId, // KEY CHANGE: Linked to real user
+        venue_id: venueIdToLink, // Optional: Linked to venue if selected
         title: data.title,
         company_name: data.company_name,
         company_logo: data.company_logo || null,
-        description: descriptionBlock, // Store raw string (it's JSONB, so it will be a JSON string, but not double encoded)
+        description: descriptionBlock,
         salary_min: data.salary_min || null,
         salary_max: data.salary_max || null,
         currency: 'ARS',
@@ -674,11 +820,24 @@ export async function submitJobRequest(data: any) {
         city: data.location_city || null,
         contact_email: data.contact_email,
         contact_phone: data.contact_phone || null,
-        is_active: false,
+        is_active: false, // Still requires approval (or automatic if we want?) -> Keep false for safety
         slug: slug,
+        // Advanced Fields Persistence
+        role_description: data.role_description || null,
+        responsibilities: data.responsibilities || null,
+        requirements_min: data.requirements_min || null,
+        requirements_opt: data.requirements_opt || null,
+        schedule: data.schedule || null,
+        benefits: data.benefits || null,
+        company_description: data.company_description || null,
+        deadline: data.deadline || null,
+        // source: 'self_service_covert' // Removed until column is added
     };
 
-    const { data: result, error } = await supabase
+    // Use Admin Client to insert (User might not have RLS permission to insert 'jobs' directly dependent on policy)
+    // Assuming 'authenticated' users can insert their own jobs? 
+    // If not, using AdminClient is safer for this specific flow to guarantee insertion.
+    const { data: result, error } = await supabaseAdmin
         .from('jobs')
         .insert(jobData)
         .select()
@@ -686,8 +845,65 @@ export async function submitJobRequest(data: any) {
 
     if (error) {
         console.error('Error submitting job request:', error);
-        return { success: false, error: 'Error al enviar solicitud: ' + error.message };
+        return { success: false, error: 'Error al guardar aviso: ' + error.message };
     }
 
-    return { success: true, data: result };
+    // 5. Send Notification Email (To User)
+    try {
+        await resend.emails.send({
+            from: 'Encontrá <hola@encontra.com.ar>',
+            to: [data.contact_email],
+            subject: '¡Tu aviso está creado!',
+            html: `
+                <h1>Hola!</h1>
+                <p>Tu aviso <strong>${data.title}</strong> se ha creado correctamente.</p>
+                <p>Está pendiente de aprobación. Te avisaremos cuando esté online.</p>
+                <p>Podés gestionarlo ingresando con tu email y la contraseña que acabas de crear/usar.</p>
+                <br/>
+                <p><strong>Encontrá</strong></p>
+            `
+        });
+    } catch (e) {
+        console.error("Error sending confirmation email", e);
+        // Don't fail the request, just log
+    }
+
+    return { success: true, data: result, isNewUser };
+}
+
+export async function getMyDashboardJobs() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return [];
+    }
+
+    // Use Admin Client to ensure we can see Pending jobs regardless of restrictive RLS
+    // (Assuming RLS might be "is_active=true" only for public view)
+    const supabaseAdmin = createAdminClient();
+
+    const { data, error } = await supabaseAdmin
+        .from('jobs')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching user jobs", error);
+        return [];
+    }
+
+    return data as Job[];
+}
+
+export async function incrementJobView(jobId: string) {
+    const supabaseAdmin = createAdminClient();
+
+    // Atomic increment would be better, but read-update suffices for stats
+    const { data: job } = await supabaseAdmin.from('jobs').select('views').eq('id', jobId).single();
+    const currentViews = job?.views || 0;
+
+    await supabaseAdmin.from('jobs').update({ views: currentViews + 1 }).eq('id', jobId);
+    return { success: true };
 }

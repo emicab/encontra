@@ -7,8 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function check() {
     const { data, error } = await supabase.from('venues').select('count', { count: 'exact', head: true })
-    console.log('Venues count:', data, error)
-    if (error) console.error(error)
+
 }
 
 check()

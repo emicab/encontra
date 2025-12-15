@@ -43,7 +43,7 @@ export function RegionGateway() {
 
                     if (data && data.address) {
                         const state = data.address.state || data.address.province || ""
-                        console.log("Detected State:", state)
+
 
                         // Simple matching logic
                         // We need to match "Tierra del Fuego, Antártida..." to "tdf"

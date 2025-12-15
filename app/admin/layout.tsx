@@ -17,6 +17,8 @@ export default function AdminLayout({
     const router = useRouter()
     const { toast } = useToast()
     const [isAdmin, setIsAdmin] = React.useState(false)
+    const [isRecruiter, setIsRecruiter] = React.useState(false)
+    const [hasVenue, setHasVenue] = React.useState(false)
     const [loading, setLoading] = React.useState(true)
 
     React.useEffect(() => {
@@ -27,15 +29,30 @@ export default function AdminLayout({
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
+        // Check Admin
         const { data: profile } = await supabase
             .from("profiles")
             .select("is_admin")
             .eq("id", user.id)
             .single()
 
-        if (profile) {
-            setIsAdmin(profile.is_admin)
+        const _isAdmin = profile?.is_admin || false;
+        setIsAdmin(_isAdmin)
+
+        // Check Recruiter (via metadata)
+        const _isRecruiter = user.user_metadata?.role === 'recruiter';
+        setIsRecruiter(_isRecruiter)
+
+        // Check Venue (if not admin, check if owns venue)
+        if (!_isAdmin) {
+            const { count } = await supabase
+                .from("venues")
+                .select("*", { count: 'exact', head: true })
+                .eq("owner_id", user.id);
+
+            setHasVenue((count || 0) > 0);
         }
+
         setLoading(false)
     }
 
@@ -108,13 +125,33 @@ export default function AdminLayout({
                     </Link>
                 </>
             ) : (
-                <Link
-                    href="/admin/my-venue"
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                >
-                    <Store className="h-4 w-4" />
-                    Mi Negocio
-                </Link>
+                <>
+                    {/* Merchant Link */}
+                    {hasVenue && (
+                        <Link
+                            href="/admin/my-venue"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Store className="h-4 w-4" />
+                            Mi Negocio
+                        </Link>
+                    )}
+
+                    {/* Recruiter Link (Also show if generic user has jobs?) 
+                        Let's just show "Mis Empleos" if they are recruiter OR have venue (hybrid) 
+                        Actually, anyone can post jobs, so let's show it if isRecruiter OR we could check if they have jobs?
+                        Simpler: If isRecruiter OR hasVenue (since venues can post too)
+                    */}
+                    {(isRecruiter || hasVenue) && (
+                        <Link
+                            href="/admin/my-jobs"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Briefcase className="h-4 w-4" />
+                            Mis Empleos
+                        </Link>
+                    )}
+                </>
             )}
             <Link
                 href="/admin/settings"

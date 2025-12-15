@@ -68,7 +68,8 @@ export function JobsTable({ jobs, venueId }: JobsTableProps) {
                             <TableHead>Tipo</TableHead>
                             <TableHead>Modalidad</TableHead>
                             <TableHead>Estado</TableHead>
-                            <TableHead>Candidatos</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Estadísticas</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -105,7 +106,10 @@ export function JobsTable({ jobs, venueId }: JobsTableProps) {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {job.application_count}
+                                        <div className="flex flex-col gap-1 text-xs">
+                                            <div title="Vistas">👁️ {job.views || 0}</div>
+                                            <div title="Candidatos">👥 {job.applications_count || 0}</div>
+                                        </div>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">

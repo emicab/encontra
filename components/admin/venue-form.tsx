@@ -264,7 +264,7 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 is_new: true // Default
             }
 
-            console.log("Submitting venue data:", venueData)
+
 
             if (initialData) {
                 const { error } = await supabase

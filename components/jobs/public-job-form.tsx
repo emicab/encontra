@@ -1,81 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
+import { Form } from "@/components/ui/form"
 import { submitJobRequest } from "@/lib/actions/jobs"
 import { toast } from "sonner"
-import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { REGIONS } from "@/lib/regions";
-import { MarkdownToolbar } from "@/components/ui/markdown-toolbar"
+import { Button } from "@/components/ui/button"
 
-// Common fields
-const commonSchema = {
-    title: z.string().min(3, "El título es muy corto"),
-    job_type: z.enum(['full_time', 'part_time', 'contract', 'freelance', 'internship']),
-    location_type: z.enum(['onsite', 'remote', 'hybrid']),
-    company_name: z.string().min(2, "Nombre de empresa requerido"),
-    company_logo: z.string().url("URL inválida").optional().or(z.literal("")),
-    contact_email: z.string().email("Email inválido"), // Postulación
-    contact_phone: z.string().optional(), // WhatsApp
-    salary_min: z.coerce.number().optional(),
-    salary_max: z.coerce.number().optional(),
-    location_city: z.string().min(2, "Ciudad requerida"),
-    region_code: z.string().min(2, "Provincia requerida"),
-}
+import { supabase } from "@/lib/supabase"
+import { jobFormSchema, JobFormValues } from "@/lib/schemas/jobs"
 
-// Basic Schema
-const basicSchema = z.object({
-    mode: z.literal('basic'),
-    description: z.string().min(10, "La descripción es obligatoria"),
-    ...commonSchema,
-})
-
-// Advanced Schema
-const advancedSchema = z.object({
-    mode: z.literal('advanced'),
-    role_description: z.string().min(10, "Describí qué va a hacer la persona"),
-    responsibilities: z.string().min(10, "Listá las responsabilidades principales"),
-    requirements_min: z.string().min(5, "Requerido"),
-    requirements_opt: z.string().optional(),
-    schedule: z.string().optional(),
-    company_description: z.string().optional(),
-    location_address: z.string().optional(),
-    benefits: z.string().optional(),
-    deadline: z.string().optional(),
-    ...commonSchema,
-}).omit({ location_city: true }).extend({
-    location_city: z.string().min(2, "Ciudad requerida"),
-})
-
-
-// Discriminated Union
-const jobFormSchema = z.discriminatedUnion("mode", [
-    basicSchema,
-    advancedSchema
-])
-
+// Sub-components
+import { JobBasicInfo } from "./form-sections/job-basic-info"
+import { JobDescriptionFields } from "./form-sections/job-details-mode"
+import { JobManagementFields } from "./form-sections/job-management-section"
+import { VenueSelectionDialog } from "./form-sections/venue-selection-dialog"
 
 export function PublicJobForm() {
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
     const [mode, setMode] = useState<'basic' | 'advanced'>('basic')
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-    const form = useForm<z.infer<typeof jobFormSchema>>({
+    // Venue Selection State
+    const [venueSelectionOpen, setVenueSelectionOpen] = useState(false)
+    const [detectedVenues, setDetectedVenues] = useState<any[]>([])
+    const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
+    const [pendingValues, setPendingValues] = useState<any>(null)
+
+    const form = useForm<JobFormValues>({
         resolver: zodResolver(jobFormSchema),
         defaultValues: {
             mode: 'basic',
@@ -88,10 +45,8 @@ export function PublicJobForm() {
             location_city: "",
             region_code: "",
             contact_email: "",
-
             // Basic
             description: "",
-
             // Advanced defaults
             role_description: "",
             responsibilities: "",
@@ -104,26 +59,54 @@ export function PublicJobForm() {
             company_logo: "",
             contact_phone: "",
             deadline: "",
-        } as any, // Cast to any to generic types avoid discriminated union issues in defaultValues
+            password: "",
+        } as any,
     })
+
+    // Check Session
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                setIsLoggedIn(true)
+                form.setValue("contact_email", user.email || "")
+            }
+        }
+        checkUser()
+    }, [form])
 
     // Update mode in form when state changes
     const onModeChange = (value: string) => {
         const newMode = value as 'basic' | 'advanced';
         setMode(newMode);
         form.setValue('mode', newMode);
-        // Clean errors when switching?
         form.clearErrors();
     }
 
-    async function onSubmit(values: z.infer<typeof jobFormSchema>) {
+    async function onSubmit(values: JobFormValues) {
+        if (!isLoggedIn && (!values.password || values.password.length < 6)) {
+            form.setError("password", { message: "La contraseña es requerida para nuevos usuarios" })
+            return
+        }
+
         setLoading(true)
         try {
-            const result = await submitJobRequest(values);
+            // Include selected venue if any
+            const valuesToSend = {
+                ...values,
+                venue_id: selectedVenueId || undefined,
+            };
+
+            const result = await submitJobRequest(valuesToSend) as any;
 
             if (result.success) {
                 setSuccess(true);
                 toast.success("Solicitud enviada correctamente");
+            } else if (result.requires_venue_selection) {
+                // Open Modal
+                setPendingValues(values); // Save for retry
+                setDetectedVenues(result.venues);
+                setVenueSelectionOpen(true);
             } else {
                 toast.error(result.error || "Error al enviar solicitud");
             }
@@ -133,6 +116,45 @@ export function PublicJobForm() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleVenueSelection = async () => {
+        if (!selectedVenueId) return;
+        setVenueSelectionOpen(false);
+        // Retry with selection
+        setLoading(true);
+        try {
+            const result = await submitJobRequest({
+                ...pendingValues,
+                venue_id: selectedVenueId
+            });
+            if (result.success) {
+                setSuccess(true);
+                toast.success("Solicitud vinculada y enviada correctamente");
+            } else {
+                toast.error(result.error);
+            }
+        } catch (e) { toast.error("Error al reintentar"); }
+        finally { setLoading(false); }
+    }
+
+    const handleSkipVenue = async () => {
+        setVenueSelectionOpen(false);
+        setLoading(true);
+        try {
+            // Retry with explicit skip
+            const result = await submitJobRequest({
+                ...pendingValues,
+                skip_venue_link: true
+            });
+            if (result.success) {
+                setSuccess(true);
+                toast.success("Solicitud enviada (Cuenta Personal)");
+            } else {
+                toast.error(result.error);
+            }
+        } catch (e) { toast.error("Error al reintentar"); }
+        finally { setLoading(false); }
     }
 
     if (success) {
@@ -147,7 +169,7 @@ export function PublicJobForm() {
                 </p>
                 <div className="space-y-3">
                     <Button asChild className="w-full">
-                        <Link href="/bio-encontra">Volver al Inicio</Link>
+                        <Link href={isLoggedIn ? "/admin" : "/bio-encontra"}>Volver al Inicio</Link>
                     </Button>
                 </div>
             </div>
@@ -157,7 +179,7 @@ export function PublicJobForm() {
     return (
         <div className="max-w-3xl mx-auto py-8 px-4">
             <div className="mb-8">
-                <Link href="/bio-encontra" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 mb-4">
+                <Link href={isLoggedIn ? "/admin" : "/bio-encontra"} className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 mb-4">
                     <ArrowLeft size={16} />
                     Volver
                 </Link>
@@ -169,417 +191,37 @@ export function PublicJobForm() {
                 </div>
             </div>
 
-            <div className="mb-6">
-                <Tabs value={mode} onValueChange={onModeChange} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="basic">Formulario Simple</TabsTrigger>
-                        <TabsTrigger value="advanced">Formulario Detallado</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
-
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-gray-100">
 
-                    {/* Common Fields */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información General</h3>
+                    <JobBasicInfo control={form.control} />
 
-                        <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Título del Puesto <span className="text-red-500">*</span></FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ej. Desarrollador Frontend Jr" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                    <JobDescriptionFields
+                        control={form.control}
+                        mode={mode}
+                        onModeChange={onModeChange}
+                    />
 
-                        <FormField
-                            control={form.control}
-                            name="company_name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nombre de la Empresa <span className="text-red-500">*</span></FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ej. Restaurante El Faro" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="job_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tipo de Contrato</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="full_time">Full Time</SelectItem>
-                                                <SelectItem value="part_time">Part Time</SelectItem>
-                                                <SelectItem value="contract">Temporal / Proyecto</SelectItem>
-                                                <SelectItem value="freelance">Freelance</SelectItem>
-                                                <SelectItem value="internship">Pasantía</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="location_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Modalidad</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="onsite">Presencial</SelectItem>
-                                                <SelectItem value="hybrid">Híbrido</SelectItem>
-                                                <SelectItem value="remote">Remoto</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="region_code"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Provincia <span className="text-red-500">*</span></FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccioná una provincia" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {Object.entries(REGIONS).map(([code, name]) => (
-                                                    <SelectItem key={code} value={code}>
-                                                        {name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="location_city"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Ciudad / Localidad <span className="text-red-500">*</span></FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Ej. Ushuaia" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="contact_phone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>WhatsApp (Opcional)</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="+54 2901..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    </div>
-
-                    {/* BASIC MODE */}
-                    {mode === 'basic' && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Descripción</h3>
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center">
-                                            <FormLabel>Descripción del Empleo <span className="text-red-500">*</span></FormLabel>
-                                            <MarkdownToolbar elementId="desc-basic" />
-                                        </div>
-                                        <FormDescription>Incluí responsabilidades, requisitos y cualquier info relevante.</FormDescription>
-                                        <FormControl>
-                                            <Textarea
-                                                id="desc-basic"
-                                                placeholder="Estamos buscando..."
-                                                className="min-h-[200px]"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    )}
-
-                    {/* ADVANCED MODE */}
-                    {mode === 'advanced' && (
-                        <>
-                            {/* 1. Información del Puesto Detalles */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Detalles del Puesto</h3>
-
-                                <FormField
-                                    control={form.control}
-                                    name="role_description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex justify-between items-center">
-                                                <FormLabel>Descripción del Rol <span className="text-red-500">*</span></FormLabel>
-                                                <MarkdownToolbar elementId="desc-role" />
-                                            </div>
-                                            <FormControl>
-                                                <Textarea id="desc-role" placeholder="Qué va a hacer la persona, sin vueltas..." className="min-h-[100px]" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="responsibilities"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex justify-between items-center">
-                                                <FormLabel>Responsabilidades Principales <span className="text-red-500">*</span></FormLabel>
-                                                <MarkdownToolbar elementId="desc-resp" />
-                                            </div>
-                                            <FormDescription>Listá de 3 a 8 items (bullets)</FormDescription>
-                                            <FormControl>
-                                                <Textarea id="desc-resp" placeholder="- Tarea 1&#10;- Tarea 2&#10;- Tarea 3" className="min-h-[100px]" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="schedule"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Horario (Si aplica)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Ej. Lunes a Viernes 9 a 18hs" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* 2. Requisitos */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Requisitos</h3>
-
-                                <FormField
-                                    control={form.control}
-                                    name="requirements_min"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex justify-between items-center">
-                                                <FormLabel>Requisitos Mínimos <span className="text-red-500">*</span></FormLabel>
-                                                <MarkdownToolbar elementId="desc-req-min" />
-                                            </div>
-                                            <FormControl>
-                                                <Textarea id="desc-req-min" placeholder="Experiencia, habilidades técnicas, idiomas..." {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="requirements_opt"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex justify-between items-center">
-                                                <FormLabel>Requisitos Opcionales (Bonus)</FormLabel>
-                                                <MarkdownToolbar elementId="desc-req-opt" />
-                                            </div>
-                                            <FormControl>
-                                                <Textarea id="desc-req-opt" placeholder="Cosas que suman puntos pero no excluyen..." {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* 3. Mas Info */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Más Información</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="location_address"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Dirección Aproximada</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Ej. Centro, o Calle San Martín al 500" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="company_description"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Breve Descripción de la Empresa</FormLabel>
-                                                <FormControl>
-                                                    <Textarea placeholder="Qué hacen, sector, tamaño..." {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="company_logo"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Logo URL (Opcional)</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="https://..." {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="deadline"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Fecha Límite (Opcional)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="date" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <FormField
-                                    control={form.control}
-                                    name="benefits"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex justify-between items-center">
-                                                <FormLabel>Beneficios</FormLabel>
-                                                <MarkdownToolbar elementId="desc-benefits" />
-                                            </div>
-                                            <FormControl>
-                                                <Textarea id="desc-benefits" placeholder="Obra social, viáticos, comida, etc." {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    {/* Common Footer */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Salario y Contacto</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="salary_min"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Salario Min (ARS)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="salary_max"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Salario Max (ARS)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <FormField
-                            control={form.control}
-                            name="contact_email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Email de Recepción <span className="text-red-500">*</span></FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="rrhh@empresa.com" {...field} />
-                                    </FormControl>
-                                    <FormDescription>Dónde llegan los CVs (No será público)</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-
-                    <Button type="submit" className="w-full h-12 text-lg" size="lg" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Pubicar Empleo
-                    </Button>
+                    <JobManagementFields
+                        control={form.control}
+                        register={form.register}
+                        getValues={form.getValues}
+                        isLoggedIn={isLoggedIn}
+                        loading={loading}
+                    />
 
                 </form>
             </Form>
+
+            <VenueSelectionDialog
+                open={venueSelectionOpen}
+                onOpenChange={setVenueSelectionOpen}
+                detectedVenues={detectedVenues}
+                selectedVenueId={selectedVenueId}
+                onSelectVenue={setSelectedVenueId}
+                onConfirm={handleVenueSelection}
+                onSkip={handleSkipVenue}
+            />
         </div>
     )
 }

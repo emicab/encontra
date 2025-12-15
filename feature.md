@@ -1,10 +1,22 @@
-# Encontrá - La Guía de Locales y Servicios `v1.13.0`
+# Encontrá - La Guía de Locales y Servicios `v1.14.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.14.0` - Estadísticas de Empleos y URLs Amigables
+*   **Métricas de Empleo**:
+    *   **Contadores en Tiempo Real**: Visualización de **Vistas** (tráfico) y **Postulados** (conversión) en el panel de administrador y dashboards de usuario.
+    *   **Sincronización Admin/User**: Consistencia total de datos entre "Mis Empleos" y el panel general de Admin.
+*   **Optimización de URLs (SEO)**:
+    *   **Slugs Dinámicos**: Migración de rutas de empleo a formato amigable `/jobs/[título-del-puesto]` (ej: `/jobs/vendedor-full-time`) manteniendo compatibilidad retroactiva con IDs antiguos.
+    *   **Mejora de Click-Through**: URLs más limpias y descriptivas para compartir en redes.
+*   **Experiencia de Usuario (UX)**:
+    *   **Diseño de Tarjetas Compacto**: Rediseño del listado "Mis Empleos" para maximizar la información en pantalla, utilizando filas responsive en lugar de tarjetas voluminosas.
+    *   **Validación Inteligente**: Corrección de lógica en formularios "Simple Mode" para evitar bloqueos por campos avanzados vacíos.
+    *   **Persistencia de Propiedad**: Garantía de que la edición de un admin no sobrescribe el `owner_id` original del usuario.
 
 ### `v1.13.0` - Seguridad Admin y Navegación
 *   **Seguridad del Panel Administrativo**:

@@ -51,7 +51,7 @@ export async function registerVenue(data: any) {
             // The error message from Supabase for existing user varies, but let's try login if signup fails
             // or simply check if the error indicates existence.
             // Alternatively, we can just try SignIn if SignUp fails.
-            console.log("SignUp failed (might exist), trying SignIn...", signUpError.message)
+
 
             const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email,

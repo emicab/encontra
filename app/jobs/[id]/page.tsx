@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Clock, ArrowLeft, Building2, Globe, Share2, Calendar, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { ApplicationForm } from '@/components/jobs/application-form';
+import { ViewCounter } from '@/components/jobs/view-counter';
 
 export const dynamic = 'force-dynamic';
 
@@ -165,6 +166,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
+            <ViewCounter jobId={job.id} />
             {/* Navigation Header */}
             <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100">
                 <div className="container mx-auto px-4 h-14 flex items-center justify-between max-w-3xl">

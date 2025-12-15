@@ -45,6 +45,20 @@ export const PLANS = {
             analytics: true,
         },
     },
+    corporate: {
+        name: "Corporate",
+        price: 0, // Contact for price? Or special plan.
+        features: {
+            whatsapp: true,
+            socials: true,
+            productsLimit: 0,
+            verified: true,
+            coupons: false,
+            featured: false,
+            galleryLimit: 0,
+            analytics: true,
+        }
+    }
 }
 
 export function getVenueFeatures(venue: Venue) {

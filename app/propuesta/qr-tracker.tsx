@@ -27,7 +27,7 @@ function Tracker() {
                 device_time: new Date().toISOString()
             })
 
-            console.log("Tracking QR Scan (Internal & Vercel):", source)
+
         }
     }, [searchParams, pathname])
 
