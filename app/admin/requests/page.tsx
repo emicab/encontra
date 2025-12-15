@@ -85,7 +85,10 @@ interface VenueRequest {
 import { slugify } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
+import { useRouter } from "next/navigation"
+
 export default function RequestsPage() {
+    const router = useRouter()
     const [requests, setRequests] = useState<VenueRequest[]>([])
     const [loading, setLoading] = useState(true)
     const [processingId, setProcessingId] = useState<string | null>(null)
@@ -97,6 +100,21 @@ export default function RequestsPage() {
 
     async function fetchRequests() {
         try {
+            // Check Admin Status
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("is_admin")
+                    .eq("id", user.id)
+                    .single()
+
+                if (!profile?.is_admin) {
+                    router.push("/admin/my-venue")
+                    return
+                }
+            }
+
             const { data, error } = await supabase
                 .from("venue_requests")
                 .select("*")

@@ -1,10 +1,26 @@
-# Encontrá - La Guía de Locales y Servicios `v1.12.0`
+# Encontrá - La Guía de Locales y Servicios `v1.13.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.13.0` - Seguridad Admin y Navegación
+*   **Seguridad del Panel Administrativo**:
+    *   **Protección de Rutas Globales**: Bloqueo estricto de rutas de "Super Admin" (`/admin/venues`, `/admin/users`, `/admin/requests`) para dueños de locales, redirigiendo automáticamente a "Mi Negocio".
+    *   **Aislamiento de Datos**: Garantía de que cada dueño solo pueda ver y editar su propio local.
+*   **Mejoras de Navegación**:
+    *   **Botones "Volver" Inteligentes**: Lógica condicional en formularios de edición y productos.
+        *   Si es **Admin** -> Vuelve al listado general.
+        *   Si es **Dueño** -> Vuelve a su panel principal (`/admin/my-venue`).
+*   **Configuración de Usuario**:
+    *   **Perfil Editable**: Nueva funcionalidad en `/admin/settings` que permite ver y modificar el nombre del usuario.
+    *   **Persistencia Dual**: Actualización sincronizada en `auth.users` (metadata) y tabla `profiles`.
+*   **Optimización de Registro (`/sumate`)**:
+    *   **Ubicación Detallada**: Nuevos selectores de Provincia y Ciudad en el formulario de registro.
+    *   **Generación de Slug**: Creación automática de URLs amigables (`nombre-del-local`) al registrarse.
+    *   **Autenticación**: Solución a errores de "Anonymous sign-ins" asegurando el flujo correcto de email y contraseña.
 
 ### `v1.12.0` - Sistema de Analíticas y Tracking
 *   **Inteligencia de Datos**:

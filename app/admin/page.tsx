@@ -5,7 +5,10 @@ import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Store, Ticket, Users, Star, ClipboardList, Loader2 } from "lucide-react"
 
+import { useRouter } from "next/navigation"
+
 export default function AdminDashboard() {
+    const router = useRouter()
     const [stats, setStats] = useState({
         totalVenues: 0,
         totalCoupons: 0,
@@ -18,6 +21,24 @@ export default function AdminDashboard() {
     useEffect(() => {
         async function fetchStats() {
             try {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    router.push("/login")
+                    return
+                }
+
+                // Check Admin Status
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("is_admin")
+                    .eq("id", user.id)
+                    .single()
+
+                if (!profile?.is_admin) {
+                    router.push("/admin/my-venue")
+                    return
+                }
+
                 // 1. Total Venues & Reviews Stats
                 const { data: venuesData, error: venuesError } = await supabase
                     .from('venues')
@@ -53,16 +74,16 @@ export default function AdminDashboard() {
                     totalReviews,
                     avgRating
                 })
+                setLoading(false)
 
             } catch (error) {
                 console.error("Error fetching admin stats:", error)
-            } finally {
                 setLoading(false)
             }
         }
 
         fetchStats()
-    }, [])
+    }, [router])
 
     if (loading) {
         return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>

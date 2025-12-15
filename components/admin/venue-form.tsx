@@ -295,7 +295,12 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 })
             }
 
-            router.push("/admin/venues")
+
+            if (isAdmin) {
+                router.push("/admin/venues")
+            } else {
+                router.push("/admin/my-venue")
+            }
             router.refresh()
         } catch (error: any) {
             console.error("Error saving venue full object:", error)
@@ -1047,7 +1052,7 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 {/* Floating Save Button */}
                 <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 md:left-64 z-50 shadow-lg">
                     <div className="container mx-auto flex justify-end gap-4 max-w-4xl">
-                        <Button type="button" variant="outline" onClick={() => router.back()}>
+                        <Button type="button" variant="outline" onClick={() => isAdmin ? router.back() : router.push("/admin/my-venue")}>
                             Cancelar
                         </Button>
                         <Button type="submit" disabled={isPending}>
