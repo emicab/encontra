@@ -871,7 +871,7 @@ export async function submitJobRequest(data: any) {
     return { success: true, data: result, isNewUser };
 }
 
-export async function getMyDashboardJobs() {
+export async function getEmployerJobs() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 

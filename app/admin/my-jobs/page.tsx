@@ -15,7 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { deleteJob, getMyDashboardJobs } from "@/lib/actions/jobs"
+import { deleteJob, getEmployerJobs } from "@/lib/actions/jobs"
 import { toast } from "sonner"
 import {
     AlertDialog,
@@ -39,7 +39,7 @@ export default function MyJobsPage() {
 
     async function fetchMyJobs() {
         try {
-            const data = await getMyDashboardJobs();
+            const data = await getEmployerJobs();
             if (data) {
                 setJobs(data)
             }
