@@ -54,7 +54,7 @@ const formSchema = z.object({
     phone: z.string().optional(),
     openTime: z.string().optional(),
     closeTime: z.string().optional(),
-    image: z.string().min(1, "La imagen de portada es obligatoria"),
+    image: z.string().optional().or(z.literal("")),
     logo: z.string().optional(),
     rating: z.coerce.number().min(0).max(5),
     reviewCount: z.coerce.number().min(0),
@@ -231,6 +231,9 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 }
             }
 
+            // Fallback Logic: If image is empty, try to use logo
+            const finalImage = values.image || values.logo || null;
+
             const venueData = {
                 region_code: values.regionCode,
                 name: { es: values.name }, // Wrap in JSONB
@@ -246,7 +249,6 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                     ? `${values.street || ''}, ${values.city}, Argentina`
                     : `${values.zone || ''}, ${values.city}, Argentina`,
                 coordinates: values.coordinates,
-                coordinates: values.coordinates,
                 whatsapp: values.whatsapp.replace(/\D/g, ''), // Keep only numbers
                 website: values.website,
                 instagram: values.instagram ? values.instagram.replace(/^@/, '').replace(/.*\//, '') : '', // Extract handle
@@ -254,7 +256,7 @@ export function VenueForm({ initialData, isAdmin = false }: VenueFormProps) {
                 phone: values.phone,
                 open_time: values.openTime,
                 close_time: values.closeTime,
-                image: values.image,
+                image: finalImage,
                 logo: values.logo,
                 rating: values.rating,
                 review_count: values.reviewCount,
