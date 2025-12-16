@@ -128,6 +128,8 @@ function ApplicationFormContent({ jobId, employerEmail, jobTitle, onSuccess }: A
             return;
         }
 
+        const formData = new FormData(event.currentTarget)
+
         try {
             // 1. Upload to Supabase Storage
             const fileExt = file.name.split('.').pop()
@@ -147,7 +149,6 @@ function ApplicationFormContent({ jobId, employerEmail, jobTitle, onSuccess }: A
                 .from('resumes')
                 .getPublicUrl(fileName)
 
-            const formData = new FormData(event.currentTarget)
             formData.append("jobId", jobId)
             formData.append("employerEmail", employerEmail)
             formData.append("jobTitle", jobTitle)
