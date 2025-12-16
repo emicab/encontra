@@ -199,9 +199,9 @@ export async function submitApplication(formData: FormData) {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const message = formData.get('message') as string;
-    const file = formData.get('cv') as File;
+    const cvUrl = formData.get('cvUrl') as string;
 
-    console.log("[submitApplication] START", { jobId, employerEmail, email, hasFile: !!file });
+    console.log("[submitApplication] START", { jobId, employerEmail, email, cvUrl });
 
     // 1. Validate Turnstile
     if (!turnstileToken) {
@@ -242,16 +242,23 @@ export async function submitApplication(formData: FormData) {
         return { success: false, error: 'No employer email found' };
     }
 
-    if (!file || file.size === 0) {
-        return { success: false, error: 'CV requerido' };
+    if (!cvUrl) {
+        return { success: false, error: 'CV requerido (URL)' };
     }
 
     // 2. Prepare Attachment
 
 
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // Fetch the file from the URL (Supabase Storage)
+        const fileRes = await fetch(cvUrl)
+        if (!fileRes.ok) throw new Error("Failed to fetch CV file")
+
+        const arrayBuffer = await fileRes.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        // Extract filename from URL (or just use generic)
+        const filename = cvUrl.split('/').pop()?.split('?')[0] || "CV.pdf"
 
 
 
@@ -339,7 +346,7 @@ export async function submitApplication(formData: FormData) {
       `,
             attachments: [
                 {
-                    filename: file.name,
+                    filename: filename,
                     content: buffer,
                 }
             ]

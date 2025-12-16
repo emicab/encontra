@@ -29,6 +29,7 @@ import { toast } from "sonner"
 import { Loader2, UploadCloud, FileText, CheckCircle2 } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import Turnstile from "react-turnstile"
+import { supabase } from "@/lib/supabase"
 
 interface ApplicationFormProps {
     jobId: string
@@ -127,13 +128,34 @@ function ApplicationFormContent({ jobId, employerEmail, jobTitle, onSuccess }: A
             return;
         }
 
-        const formData = new FormData(event.currentTarget)
-        formData.append("jobId", jobId)
-        formData.append("employerEmail", employerEmail)
-        formData.append("jobTitle", jobTitle)
-        formData.append("turnstileToken", token)
-
         try {
+            // 1. Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${jobId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('resumes')
+                .upload(fileName, file)
+
+            if (uploadError) {
+                console.error("Upload Error:", uploadError)
+                throw new Error("Error al subir el CV. Intenta nuevamente.")
+            }
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('resumes')
+                .getPublicUrl(fileName)
+
+            const formData = new FormData(event.currentTarget)
+            formData.append("jobId", jobId)
+            formData.append("employerEmail", employerEmail)
+            formData.append("jobTitle", jobTitle)
+            formData.append("turnstileToken", token)
+            formData.append("cvUrl", publicUrl) // Send URL instead of file
+            // Remove huge file from formdata to avoid payload limit
+            formData.delete("cv")
+
             const result = await submitApplication(formData)
 
             if (result.success) {
@@ -210,7 +232,15 @@ function ApplicationFormContent({ jobId, employerEmail, jobTitle, onSuccess }: A
                         id="cv-upload"
                         onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
-                                setFile(e.target.files[0])
+                                const selectedFile = e.target.files[0]
+                                // Limit to 10MB (Now using Storage)
+                                if (selectedFile.size > 10 * 1024 * 1024) {
+                                    toast.error("El archivo es demasiado grande. Máximo 10MB.");
+                                    e.target.value = ""; // Reset input
+                                    setFile(null);
+                                    return;
+                                }
+                                setFile(selectedFile)
                             }
                         }}
                     />
