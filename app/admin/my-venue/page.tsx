@@ -35,6 +35,7 @@ export default function MyVenuePage() {
                     rating: data.rating,
                     whatsapp: data.whatsapp,
                     category: data.category,
+                    slug: data.slug,
                     // ... other fields as needed for display
                 } as Venue)
             }
