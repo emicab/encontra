@@ -600,6 +600,7 @@ export async function upsertJob(data: Partial<Job>) {
 
     // Remove expanded relations if present to avoid DB error
     delete (jobData as any).venues;
+    delete (jobData as any).location_address;
 
 
 

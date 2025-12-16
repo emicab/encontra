@@ -58,9 +58,12 @@ export default async function SumateLandingPage() {
                             <div className="p-1 bg-green-500/20 rounded-full"><Check className="w-4 h-4 text-green-400" /></div>
                             <span>Catálogo de Productos ilimitado.</span>
                         </li>
-                        <li className="flex items-center gap-3 text-slate-200">
-                            <div className="p-1 bg-green-500/20 rounded-full"><Check className="w-4 h-4 text-green-400" /></div>
-                            <span>Publicación de Búsquedas Laborales.</span>
+                        <li className="flex items-start gap-3 text-slate-200">
+                            <div className="p-1 bg-green-500/20 rounded-full mt-0.5"><Check className="w-4 h-4 text-green-400" /></div>
+                            <div>
+                                <span className="font-medium text-white block">Bio Link (Tu Mini-Web):</span>
+                                <span className="text-sm text-slate-400 leading-snug">Un enlace inteligente para tu Instagram/TikTok que agrupa WhatsApp, Ubicación y más.</span>
+                            </div>
                         </li>
                     </ul>
                 </div>
