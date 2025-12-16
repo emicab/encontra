@@ -201,6 +201,8 @@ export async function submitApplication(formData: FormData) {
     const message = formData.get('message') as string;
     const file = formData.get('cv') as File;
 
+    console.log("[submitApplication] START", { jobId, employerEmail, email, hasFile: !!file });
+
     // 1. Validate Turnstile
     if (!turnstileToken) {
         return { success: false, error: 'Validación de seguridad requerida' };
@@ -216,6 +218,7 @@ export async function submitApplication(formData: FormData) {
     });
 
     const turnstileResult = await turnstileVerify.json();
+    console.log("[submitApplication] Turnstile Result:", turnstileResult);
     if (!turnstileResult.success) {
         return { success: false, error: 'Error de validación de seguridad (Captcha)' };
     }
@@ -346,9 +349,11 @@ export async function submitApplication(formData: FormData) {
         const { data, error } = await Promise.race([emailPromise, timeout]) as any;
 
         if (error) {
-            console.error("Resend error:", error);
+            console.error("[submitApplication] Resend error:", error);
             return { success: false, error: 'Error enviando email: ' + error.message };
         }
+
+        console.log("[submitApplication] Resend Success:", data);
 
         // Optional: Increment stats in DB here if desired, but we keep it stateless for now as requested.
 
@@ -849,25 +854,8 @@ export async function submitJobRequest(data: any) {
         return { success: false, error: 'Error al guardar aviso: ' + error.message };
     }
 
-    // 5. Send Notification Email (To User)
-    try {
-        await resend.emails.send({
-            from: 'Encontrá <hola@encontra.com.ar>',
-            to: [data.contact_email],
-            subject: '¡Tu aviso está creado!',
-            html: `
-                <h1>Hola!</h1>
-                <p>Tu aviso <strong>${data.title}</strong> se ha creado correctamente.</p>
-                <p>Está pendiente de aprobación. Te avisaremos cuando esté online.</p>
-                <p>Podés gestionarlo ingresando con tu email y la contraseña que acabas de crear/usar.</p>
-                <br/>
-                <p><strong>Encontrá</strong></p>
-            `
-        });
-    } catch (e) {
-        console.error("Error sending confirmation email", e);
-        // Don't fail the request, just log
-    }
+    // 5. Send Notification Email (To User) - REMOVED
+    // try { ... } catch (e) { ... }
 
     return { success: true, data: result, isNewUser };
 }
