@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Loader2, MapPin, Pencil, Package } from "lucide-react"
 import Link from "next/link"
 import { Venue } from "@/lib/data"
+import { BioLinkCard } from "@/components/admin/bio-link-card"
 
 export default function MyVenuePage() {
     const [venue, setVenue] = useState<Venue | null>(null)
@@ -64,6 +65,8 @@ export default function MyVenuePage() {
                 <h2 className="text-3xl font-bold tracking-tight">Mi Negocio</h2>
                 <p className="text-muted-foreground">Administra la información de tu local.</p>
             </div>
+
+            {venue.slug && <BioLinkCard slug={venue.slug} />}
 
             <Card>
                 <CardHeader>

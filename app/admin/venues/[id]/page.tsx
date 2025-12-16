@@ -7,6 +7,7 @@ import { notFound, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { BioLinkCard } from "@/components/admin/bio-link-card"
 
 export default function EditVenuePage() {
     const params = useParams()
@@ -115,6 +116,7 @@ export default function EditVenuePage() {
                     </a>
                 </div>
             </div>
+            {venue && venue.slug && <BioLinkCard slug={venue.slug} />}
             <VenueForm initialData={venue} isAdmin={isAdmin} />
         </div>
     )
