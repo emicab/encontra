@@ -1,10 +1,22 @@
-# Encontrá - La Guía de Locales y Servicios `v1.14.0`
+# Encontrá - La Guía de Locales y Servicios `v1.15.0`
 
 > **Nota sobre Versionado**: A partir de la versión `v0.4.0`, este proyecto adhiere a [Semantic Versioning (SemVer)](https://semver.org/lang/es/).
 
 Este proyecto es una plataforma web moderna diseñada para conectar a la comunidad con el mercado local. Su objetivo es dar visibilidad tanto a comercios establecidos como a pequeños emprendimientos y servicios, priorizando la experiencia local.
 
 ## 📋 Registro de Cambios (Changelog)
+
+### `v1.15.0` - Analytics Global y Educación de Usuario
+*   **Sistema de Analytics Universal**:
+    *   **Tracker Global**: Nuevo componente `GlobalTracker` que monitorea automáticamente cualquier parámetro `source` o `ref` en todas las rutas sin necesidad de modificar código.
+    *   **Tracking Flexible**: Soporte para campañas dinámicas (ej: `?source=feria_diciembre`, `?source=paseo_cordoba`) sin hardcodear valores.
+    *   **Panel de Fuentes**: Nueva pestaña "Fuentes de Tráfico" en el dashboard de analíticas mostrando ranking de campañas más efectivas.
+    *   **Métricas Ampliadas**: Contadores de "Visitas con Source" (total y diarias) junto a las métricas existentes de QR y page views.
+*   **Educación de Usuario (UX)**:
+    *   **Tooltip Inteligente**: Sistema no invasivo que guía a usuarios nuevos a seleccionar su ubicación mediante un tooltip educativo que aparece solo en la primera visita.
+    *   **Animación Sutil**: Efecto de pulso suave en el selector de ubicación durante 12 segundos para llamar la atención naturalmente.
+    *   **Persistencia**: Uso de `localStorage` para evitar mostrar el tooltip en visitas futuras, garantizando una experiencia limpia para usuarios recurrentes.
+    *   **Auto-cierre**: El tooltip se cierra automáticamente después de 10 segundos o al hacer clic en el selector.
 
 ### `v1.14.0` - Estadísticas de Empleos y URLs Amigables
 *   **Métricas de Empleo**:

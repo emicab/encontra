@@ -22,6 +22,9 @@ export default function AnalyticsPage() {
         totalQrScans: 0,
         todayQrScans: 0,
         totalPageViews: 0,
+        totalSourceVisits: 0,
+        todaySourceVisits: 0,
+        topSources: [] as { name: string, count: number }[],
         topVenues: [] as { name: string, count: number }[],
         topCities: [] as { name: string, count: number }[],
         topRegions: [] as { name: string, count: number }[]
@@ -47,14 +50,17 @@ export default function AnalyticsPage() {
                 // Calculate Stats
                 const qrScans = data.filter(e => e.event_name === 'qr_scan')
                 const pageViews = data.filter(e => e.event_name === 'page_view')
+                const sourceVisits = data.filter(e => e.event_name === 'source_visit')
 
                 const today = new Date().toISOString().split('T')[0]
                 const todayQrScans = qrScans.filter(e => e.created_at.startsWith(today)).length
+                const todaySourceVisits = sourceVisits.filter(e => e.created_at.startsWith(today)).length
 
                 // Group Page Views
                 const venues: Record<string, number> = {}
                 const cities: Record<string, number> = {}
                 const regions: Record<string, number> = {}
+                const sources: Record<string, number> = {}
 
                 pageViews.forEach(v => {
                     const meta = v.metadata || {}
@@ -67,9 +73,12 @@ export default function AnalyticsPage() {
                     if (meta.type === 'region' && meta.region) {
                         regions[meta.region] = (regions[meta.region] || 0) + 1
                     }
-                    // For venue views, we effectively also viewed the region/city context, 
-                    // but usually "Page View" means explicit hit on that route.
-                    // We'll stick to explicit route hits for now.
+                })
+
+                // Group Source Visits
+                sourceVisits.forEach(v => {
+                    const source = v.source || 'unknown'
+                    sources[source] = (sources[source] || 0) + 1
                 })
 
                 const topVenues = Object.entries(venues)
@@ -87,10 +96,18 @@ export default function AnalyticsPage() {
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 5)
 
+                const topSources = Object.entries(sources)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10)
+
                 setStats({
                     totalQrScans: qrScans.length,
                     todayQrScans,
                     totalPageViews: pageViews.length,
+                    totalSourceVisits: sourceVisits.length,
+                    todaySourceVisits,
+                    topSources,
                     topVenues,
                     topCities,
                     topRegions
@@ -115,22 +132,22 @@ export default function AnalyticsPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Escaneos QR</CardTitle>
+                        <CardTitle className="text-sm font-medium">Visitas con Source</CardTitle>
                         <QrCode className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalQrScans}</div>
+                        <div className="text-2xl font-bold">{stats.totalSourceVisits}</div>
                         <p className="text-xs text-muted-foreground">Total histórico</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Escaneos Hoy</CardTitle>
+                        <CardTitle className="text-sm font-medium">Visitas Hoy</CardTitle>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.todayQrScans}</div>
+                        <div className="text-2xl font-bold">{stats.todaySourceVisits}</div>
                         <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString()}</p>
                     </CardContent>
                 </Card>
@@ -145,18 +162,44 @@ export default function AnalyticsPage() {
                         <p className="text-xs text-muted-foreground">Regiones, Ciudades, Locales</p>
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Escaneos QR (Legacy)</CardTitle>
+                        <QrCode className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.totalQrScans}</div>
+                        <p className="text-xs text-muted-foreground">Tracker anterior</p>
+                    </CardContent>
+                </Card>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="overview">Resumen</TabsTrigger>
+                    <TabsTrigger value="sources">Fuentes de Tráfico</TabsTrigger>
                     <TabsTrigger value="venues">Top Locales</TabsTrigger>
                     <TabsTrigger value="cities">Top Ciudades</TabsTrigger>
                     <TabsTrigger value="history">Historial Completo</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Top Fuentes</CardTitle>
+                                <CardDescription>Campañas más efectivas</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {stats.topSources.slice(0, 5).map((v, i) => (
+                                    <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                                        <span className="font-medium truncate max-w-[150px]">{v.name}</span>
+                                        <span className="font-bold">{v.count}</span>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
                         <Card>
                             <CardHeader>
                                 <CardTitle>Top Locales</CardTitle>
@@ -165,7 +208,7 @@ export default function AnalyticsPage() {
                             <CardContent>
                                 {stats.topVenues.map((v, i) => (
                                     <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                                        <span className="font-medium truncate max-w-[200px]">{v.name}</span>
+                                        <span className="font-medium truncate max-w-[150px]">{v.name}</span>
                                         <span className="font-bold">{v.count}</span>
                                     </div>
                                 ))}
@@ -200,6 +243,37 @@ export default function AnalyticsPage() {
                             </CardContent>
                         </Card>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="sources">
+                    <Card>
+                        <CardHeader><CardTitle>Fuentes de Tráfico</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fuente</TableHead>
+                                        <TableHead className="text-right">Visitas</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {stats.topSources.map((v, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="font-medium">{v.name}</TableCell>
+                                            <TableCell className="text-right">{v.count}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {stats.topSources.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
+                                                No hay visitas con source registradas aún.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="venues">
@@ -273,7 +347,8 @@ export default function AnalyticsPage() {
                                             </TableCell>
                                             <TableCell className="font-medium">
                                                 {event.event_name === 'qr_scan' ? 'Escaneo QR' :
-                                                    event.event_name === 'page_view' ? 'Visita' : event.event_name}
+                                                    event.event_name === 'page_view' ? 'Visita' :
+                                                        event.event_name === 'source_visit' ? 'Visita con Source' : event.event_name}
                                             </TableCell>
                                             <TableCell>
                                                 {getEventDetail(event)}
@@ -300,6 +375,7 @@ export default function AnalyticsPage() {
 
 function getEventDetail(event: any) {
     if (event.event_name === 'qr_scan') return `Fuente: ${event.source}`
+    if (event.event_name === 'source_visit') return `Fuente: ${event.source}`
     if (event.event_name === 'page_view') {
         const meta = event.metadata
         if (meta.type === 'venue') return `Local: ${meta.slug}`

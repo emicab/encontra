@@ -28,6 +28,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command"
+import { LocationTooltip } from "@/components/ui/location-tooltip"
 
 interface HeaderProps {
   searchQuery: string
@@ -48,10 +49,26 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const [view, setView] = useState<'regions' | 'cities'>('regions')
   const [cities, setCities] = useState<string[]>([])
 
+  // Tooltip state for first-time users
+  const [showTooltip, setShowTooltip] = useState(false)
+  const [shouldPulse, setShouldPulse] = useState(false)
+
   const router = useRouter()
 
   useEffect(() => {
     checkUser()
+
+    // Check if user has seen the location tooltip before
+    const hasSeenTooltip = localStorage.getItem('hasSeenLocationTooltip')
+    if (!hasSeenTooltip && !regionCode) {
+      setShowTooltip(true)
+      setShouldPulse(true)
+
+      // Stop pulse after 12 seconds
+      setTimeout(() => {
+        setShouldPulse(false)
+      }, 12000)
+    }
   }, [])
 
   useEffect(() => {
@@ -100,6 +117,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     router.refresh()
   }
 
+  const handleTooltipClose = () => {
+    setShowTooltip(false)
+    setShouldPulse(false)
+    localStorage.setItem('hasSeenLocationTooltip', 'true')
+  }
+
   // Determine display name for location
   // If we have a city slug, try to find the matching real name from our cities list, otherwise de-slugify or show slug
   const cityName = citySlug
@@ -116,13 +139,22 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           {/* Logo / Region Selector */}
           <div className="flex items-center gap-4">
             <div
-              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setOpen(true)}
+              className={`flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity relative ${shouldPulse ? 'animate-pulse-slow' : ''
+                }`}
+              onClick={() => {
+                setOpen(true)
+                setShouldPulse(false)
+              }}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+              {/* Pulse ring animation */}
+              {shouldPulse && (
+                <div className="absolute inset-0 rounded-lg animate-ping bg-primary/20" />
+              )}
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary relative z-10">
                 <Search className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div>
+              <div className="relative z-10">
                 <h1 className="text-lg font-bold text-foreground flex flex-col sm:flex-row sm:items-center items-start leading-none sm:leading-normal">
                   <span>
                     <span className="hidden xs:inline">{t.appName}</span>
@@ -294,6 +326,9 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           )}
         </CommandList>
       </CommandDialog>
+
+      {/* Location Tooltip for first-time users */}
+      {showTooltip && <LocationTooltip onClose={handleTooltipClose} />}
     </header>
   )
 }
